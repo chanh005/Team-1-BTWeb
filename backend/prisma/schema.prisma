@@ -67,6 +67,7 @@ model ActivityLog {
   @@index([userId])
   @@map("activity_logs")
 }
+
 model Destination {
   id          String   @id @default(uuid())
   name        String

@@ -127,3 +127,4 @@ Backend-only (Prisma):
 - [ ] Phase 6 — Booking & payment
 - [ ] Phase 7 — AI travel assistant
 - [ ] Phase 8 — Community / personal feed
+- [x] User profile module completed

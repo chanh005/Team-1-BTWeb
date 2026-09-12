@@ -67,3 +67,16 @@ model ActivityLog {
   @@index([userId])
   @@map("activity_logs")
 }
+model Destination {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?
+  country     String
+  city        String
+  imageUrl    String?
+  category    String?
+  rating      Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

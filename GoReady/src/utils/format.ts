@@ -1,6 +1,12 @@
 export const formatVND = (amount: number): string =>
   amount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 });
 
+/**
+ * Định dạng ThoiGian (số ngày tour) thành chuỗi "X ngày Y đêm".
+ * Quy ước: tour X ngày có X-1 đêm (tối thiểu 0 đêm).
+ */
+export const formatThoiGian = (soNgay: number): string => `${soNgay} ngày ${Math.max(soNgay - 1, 0)} đêm`;
+
 export const formatShortDate = (iso: string): string => {
   const d = new Date(iso);
   return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });

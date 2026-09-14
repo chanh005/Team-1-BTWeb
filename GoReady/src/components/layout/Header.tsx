@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { NAV_ITEMS } from './navItems';
 
 // ==========================================================================
 // Header — component điều hướng dùng chung cho toàn bộ site GoReady
@@ -13,24 +14,6 @@ export interface HeaderProps {
   /** Số thông báo chưa đọc; 0 hoặc không truyền sẽ ẩn badge. */
   unreadNotifications?: number;
 }
-
-interface NavItem {
-  label: string;
-  path: string;
-}
-
-// Đúng 9 mục, đúng thứ tự — không thêm/bớt/đổi tên.
-const NAV_ITEMS: NavItem[] = [
-  { label: 'Trang chủ', path: '/' },
-  { label: 'Đăng nhập/Tài khoản', path: '/tai-khoan' },
-  { label: 'Gợi ý', path: '/goi-y' },
-  { label: 'Khám phá', path: '/kham-pha' },
-  { label: 'Thư viện', path: '/thu-vien' },
-  { label: 'Đặt dịch vụ', path: '/dat-dich-vu' },
-  { label: 'Quản lý chuyến đi - Lịch trình của tôi', path: '/lich-trinh' },
-  { label: 'Trợ lý du lịch', path: '/tro-ly' },
-  { label: 'Bảng tin cá nhân', path: '/bang-tin' },
-];
 
 const initials = (name: string) =>
   name
@@ -63,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({
   }, [mobileOpen]);
 
   const desktopLinkClass = ({ isActive }: { isActive: boolean }) =>
-    `whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium transition-colors ${
+    `whitespace-nowrap rounded-full px-2.5 py-2 text-[13px] font-medium transition-colors ${
       isActive ? 'bg-primary text-white shadow-card' : 'text-slate-600 hover:bg-primary-50 hover:text-primary'
     }`;
 
@@ -85,8 +68,13 @@ const Header: React.FC<HeaderProps> = ({
           </span>
         </Link>
 
-        {/* Menu điều hướng desktop */}
-        <nav className="no-scrollbar hidden items-center gap-1 overflow-x-auto lg:flex" aria-label="Điều hướng chính">
+        {/*
+          Menu điều hướng desktop. 9 mục đủ tên (đặc biệt mục 7 khá dài) thường rộng hơn
+          không gian giữa logo và khu tài khoản ở nhiều kích thước desktop phổ biến (~1440px).
+          Thay vì cắt ẩn mục cuối một cách vô hình, để overflow-x-auto tự lộ scrollbar mỏng
+          làm tín hiệu "còn mục phía sau" — không đổi tên/ẩn bớt mục nào.
+        */}
+        <nav className="hidden min-w-0 items-center gap-0.5 overflow-x-auto lg:flex" aria-label="Điều hướng chính">
           {NAV_ITEMS.map((item) => (
             <NavLink key={item.path} to={item.path} end={item.path === '/'} className={desktopLinkClass}>
               {item.label}

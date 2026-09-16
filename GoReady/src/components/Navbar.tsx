@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type NavView = 'home' | 'news' | 'trips';
+export type NavView = 'home' | 'explore' | 'news' | 'trips';
 
 interface NavbarProps {
   view: NavView;
@@ -17,7 +17,7 @@ interface NavbarProps {
 
 const MAIN_LINKS: { label: string; mobileLabel: string; value: NavView }[] = [
   { label: 'Trang chủ', mobileLabel: 'Trang chủ', value: 'home' },
-  { label: 'Khám phá Tour', mobileLabel: 'Khám phá', value: 'home' },
+  { label: 'Khám phá Tour', mobileLabel: 'Khám phá', value: 'explore' },
   { label: 'Chuyến đi của tôi', mobileLabel: 'Chuyến đi', value: 'trips' },
   { label: 'Bảng tin', mobileLabel: 'Bảng tin', value: 'news' },
 ];

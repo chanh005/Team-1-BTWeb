@@ -132,11 +132,15 @@ function App() {
   const savedTours = TOURS.filter((t) => savedIds.includes(t.id));
   const compareTours = TOURS.filter((t) => compareIds.includes(t.id));
 
-  const handleSelectDestination = (destination: string) => {
+  const featuredTours = React.useMemo(() => [...TOURS].sort((a, b) => b.bookingCount - a.bookingCount).slice(0, 8), []);
+
+  const goToExplore = (destination = '') => {
     patchFilters({ destination });
     setAppliedDestination(destination);
-    document.getElementById('tour-list')?.scrollIntoView({ behavior: 'smooth' });
+    setView('explore');
   };
+
+  const handleSelectDestination = (destination: string) => goToExplore(destination);
 
   return (
     <div className="min-h-screen bg-surface font-body">
@@ -161,9 +165,54 @@ function App() {
 
       {view === 'home' && (
         <>
-          <HeroSearch filters={filters} onChange={patchFilters} tours={TOURS} onSearch={() => setAppliedDestination(filters.destination)} />
+          <HeroSearch filters={filters} onChange={patchFilters} tours={TOURS} onSearch={() => goToExplore(filters.destination)} />
+          <section className="container-px mx-auto py-8">
+            <div className="mb-5 flex items-center justify-between">
+              <h2 className="font-heading text-xl font-bold text-slate-900">Tour nổi bật</h2>
+              <button
+                onClick={() => goToExplore()}
+                className="rounded-full border border-primary px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary-50"
+              >
+                Xem tất cả tour
+              </button>
+            </div>
+            <TourList
+              tours={featuredTours}
+              savedIds={savedIds}
+              compareIds={compareIds}
+              onOpenDetail={setActiveTour}
+              onToggleSave={toggleSave}
+              onToggleCompare={toggleCompare}
+            />
+          </section>
+          <FeaturedDestinations tours={TOURS} onSelectDestination={handleSelectDestination} />
+        </>
+      )}
+
+      {view === 'explore' && (
+        <>
+          <section className="border-b border-slate-100 bg-white">
+            <div className="container-px mx-auto py-6">
+              <h1 className="font-heading text-2xl font-bold text-slate-900">Khám phá Tour</h1>
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <input
+                  value={filters.destination}
+                  onChange={(e) => patchFilters({ destination: e.target.value })}
+                  onKeyDown={(e) => e.key === 'Enter' && setAppliedDestination(filters.destination)}
+                  placeholder="Tìm theo điểm đến: Đà Nẵng, Phú Quốc, Tokyo..."
+                  className="flex-1 rounded-xl border border-slate-200 px-4 py-2.5 text-sm text-slate-800 outline-none focus:border-primary"
+                />
+                <button
+                  onClick={() => setAppliedDestination(filters.destination)}
+                  className="rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white shadow-card transition hover:bg-primary-600"
+                >
+                  Tìm tour
+                </button>
+              </div>
+            </div>
+          </section>
           <FilterBar filters={filters} onChange={patchFilters} resultCount={filteredTours.length} />
-          <main id="tour-list" className="container-px mx-auto py-8">
+          <main className="container-px mx-auto py-8">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-heading text-xl font-bold text-slate-900">
                 {appliedDestination ? `Kết quả cho "${appliedDestination}"` : 'Tất cả tour nổi bật'}
@@ -186,7 +235,6 @@ function App() {
               onToggleCompare={toggleCompare}
             />
           </main>
-          <FeaturedDestinations tours={TOURS} onSelectDestination={handleSelectDestination} />
         </>
       )}
 

@@ -10,12 +10,20 @@ import SavedAndCompareModal from './components/SavedAndCompareModal';
 import AiItineraryModal from './components/AiItineraryModal';
 import BookingCheckoutModal from './components/BookingCheckoutModal';
 import MyTripsDashboard from './components/MyTripsDashboard';
+import LoginModal from './components/LoginModal';
 import Footer from './components/Footer';
 import { TOURS } from './data/tours';
 import { DEFAULT_CHECKLIST } from './data/checklist';
+import { MOCK_USERS as SEED_USERS, type AdminUser as AccountUser } from './data/mockUsers';
+import { MOCK_BOOKINGS as SEED_BOOKINGS } from './data/mockBookings';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, SearchFilterState, Tour } from './types';
 import { uid } from './utils/format';
+
+// Shared with GoReady-Admin via localStorage keys on the same origin (see /admin proxy in vite.config.ts).
+const SHARED_TOURS_KEY = 'goready_shared_tours';
+const SHARED_BOOKINGS_KEY = 'goready_shared_bookings';
+const SHARED_USERS_KEY = 'goready_shared_users';
 
 const INITIAL_FILTERS: SearchFilterState = {
   destination: '',
@@ -36,15 +44,20 @@ function App() {
 
   const [savedIds, setSavedIds] = useLocalStorage<string[]>('goready_saved', []);
   const [compareIds, setCompareIds] = useLocalStorage<string[]>('goready_compare', []);
-  const [bookings, setBookings] = useLocalStorage<Booking[]>('goready_bookings', []);
   const [checklist, setChecklist] = useLocalStorage<ChecklistItem[]>('goready_checklist', DEFAULT_CHECKLIST);
   const [aiPlans, setAiPlans] = useLocalStorage<AiPlannerResult[]>('goready_ai_plans', []);
-  const [isLoggedIn, setIsLoggedIn] = useLocalStorage<boolean>('goready_logged_in', false);
+
+  // Shared state: read/written by both this app and GoReady-Admin (same origin via /admin proxy).
+  const [tours, setTours] = useLocalStorage<Tour[]>(SHARED_TOURS_KEY, TOURS);
+  const [bookings, setBookings] = useLocalStorage<Booking[]>(SHARED_BOOKINGS_KEY, SEED_BOOKINGS);
+  const [accounts, setAccounts] = useLocalStorage<AccountUser[]>(SHARED_USERS_KEY, SEED_USERS);
+  const [currentUserEmail, setCurrentUserEmail] = useLocalStorage<string>('goready_current_user_email', '');
 
   const [activeTour, setActiveTour] = React.useState<Tour | null>(null);
   const [bookingTour, setBookingTour] = React.useState<Tour | null>(null);
   const [showSaved, setShowSaved] = React.useState(false);
   const [showAi, setShowAi] = React.useState(false);
+  const [showLogin, setShowLogin] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
 
   const notify = (msg: string) => {
@@ -52,10 +65,27 @@ function App() {
     window.setTimeout(() => setToast(null), 2600);
   };
 
+  const currentUser = React.useMemo(
+    () => (currentUserEmail ? accounts.find((u) => u.email.toLowerCase() === currentUserEmail.toLowerCase()) ?? null : null),
+    [accounts, currentUserEmail]
+  );
+
+  // If an admin locks the account currently browsing (live via the shared "accounts" key), sign them out.
+  React.useEffect(() => {
+    if (currentUserEmail && !currentUser) return; // account removed, ignore
+    if (currentUser && currentUser.status === 'locked') {
+      setCurrentUserEmail('');
+      notify('Tài khoản của bạn đã bị quản trị viên khoá.');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser]);
+
   const patchFilters = (patch: Partial<SearchFilterState>) => setFilters((f) => ({ ...f, ...patch }));
 
+  const visibleTours = React.useMemo(() => tours.filter((t) => !t.hidden), [tours]);
+
   const filteredTours = React.useMemo(() => {
-    let list = TOURS.filter((t) => {
+    let list = visibleTours.filter((t) => {
       if (appliedDestination) {
         const q = appliedDestination.toLowerCase();
         if (!t.destination.toLowerCase().includes(q) && !t.name.toLowerCase().includes(q) && !t.country.toLowerCase().includes(q)) return false;
@@ -92,7 +122,7 @@ function App() {
         list = [...list].sort((a, b) => b.bookingCount - a.bookingCount);
     }
     return list;
-  }, [appliedDestination, filters]);
+  }, [visibleTours, appliedDestination, filters]);
 
   const toggleSave = (tourId: string) => {
     setSavedIds((prev) => {
@@ -121,6 +151,9 @@ function App() {
 
   const handleConfirmBooking = (booking: Booking) => {
     setBookings((prev) => [...prev, booking]);
+    setAccounts((prev) =>
+      prev.map((u) => (u.email.toLowerCase() === booking.contactEmail.toLowerCase() ? { ...u, totalBookings: u.totalBookings + 1 } : u))
+    );
     notify('Đặt tour thành công! Xem vé tại "Chuyến đi của tôi"');
   };
 
@@ -129,10 +162,15 @@ function App() {
     notify('Đã lưu lịch trình AI vào chuyến đi của tôi');
   };
 
-  const savedTours = TOURS.filter((t) => savedIds.includes(t.id));
-  const compareTours = TOURS.filter((t) => compareIds.includes(t.id));
+  const savedTours = tours.filter((t) => savedIds.includes(t.id));
+  const compareTours = tours.filter((t) => compareIds.includes(t.id));
 
-  const featuredTours = React.useMemo(() => [...TOURS].sort((a, b) => b.bookingCount - a.bookingCount).slice(0, 8), []);
+  const myBookings = React.useMemo(
+    () => (currentUserEmail ? bookings.filter((b) => b.contactEmail.toLowerCase() === currentUserEmail.toLowerCase()) : []),
+    [bookings, currentUserEmail]
+  );
+
+  const featuredTours = React.useMemo(() => [...visibleTours].sort((a, b) => b.bookingCount - a.bookingCount).slice(0, 8), [visibleTours]);
 
   const goToExplore = (destination = '') => {
     patchFilters({ destination });
@@ -141,6 +179,32 @@ function App() {
   };
 
   const handleSelectDestination = (destination: string) => goToExplore(destination);
+
+  const handleLoginSubmit = (name: string, email: string) => {
+    const existing = accounts.find((u) => u.email.toLowerCase() === email.toLowerCase());
+    if (existing) {
+      if (existing.status === 'locked') {
+        notify('Tài khoản này đã bị quản trị viên khoá. Vui lòng liên hệ hỗ trợ.');
+        return;
+      }
+      setCurrentUserEmail(existing.email);
+      notify(`Đăng nhập thành công! Chào mừng bạn quay lại, ${existing.name}`);
+    } else {
+      const newAccount: AccountUser = {
+        id: uid('usr'),
+        name,
+        email,
+        phone: '',
+        joinedAt: new Date().toISOString().slice(0, 10),
+        totalBookings: 0,
+        status: 'active',
+      };
+      setAccounts((prev) => [...prev, newAccount]);
+      setCurrentUserEmail(email);
+      notify('Đăng ký & đăng nhập thành công! Chào mừng bạn đến với GoReady');
+    }
+    setShowLogin(false);
+  };
 
   return (
     <div className="min-h-screen bg-surface font-body">
@@ -151,13 +215,10 @@ function App() {
         compareCount={compareIds.length}
         onOpenSaved={() => setShowSaved(true)}
         onOpenAi={() => setShowAi(true)}
-        isLoggedIn={isLoggedIn}
-        onLogin={() => {
-          setIsLoggedIn(true);
-          notify('Đăng nhập thành công! Chào mừng bạn quay lại GoReady');
-        }}
+        userName={currentUser?.name ?? null}
+        onOpenLogin={() => setShowLogin(true)}
         onLogout={() => {
-          setIsLoggedIn(false);
+          setCurrentUserEmail('');
           notify('Bạn đã đăng xuất');
         }}
         onAccountAction={(label) => notify(`${label}: tính năng đang được phát triển`)}
@@ -165,7 +226,7 @@ function App() {
 
       {view === 'home' && (
         <>
-          <HeroSearch filters={filters} onChange={patchFilters} tours={TOURS} onSearch={() => goToExplore(filters.destination)} />
+          <HeroSearch filters={filters} onChange={patchFilters} tours={visibleTours} onSearch={() => goToExplore(filters.destination)} />
           <section className="container-px mx-auto py-8">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-heading text-xl font-bold text-slate-900">Tour nổi bật</h2>
@@ -185,7 +246,7 @@ function App() {
               onToggleCompare={toggleCompare}
             />
           </section>
-          <FeaturedDestinations tours={TOURS} onSelectDestination={handleSelectDestination} />
+          <FeaturedDestinations tours={visibleTours} onSelectDestination={handleSelectDestination} />
         </>
       )}
 
@@ -242,8 +303,8 @@ function App() {
 
       {view === 'trips' && (
         <MyTripsDashboard
-          bookings={bookings}
-          tours={TOURS}
+          bookings={myBookings}
+          tours={tours}
           checklist={checklist}
           onToggleChecklist={handleToggleChecklist}
           onAddChecklistItem={handleAddChecklistItem}
@@ -286,8 +347,16 @@ function App() {
 
       {showAi && <AiItineraryModal onClose={() => setShowAi(false)} onSavePlan={handleSaveAiPlan} />}
 
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSubmit={handleLoginSubmit} />}
+
       {bookingTour && (
-        <BookingCheckoutModal tour={bookingTour} onClose={() => setBookingTour(null)} onConfirm={handleConfirmBooking} />
+        <BookingCheckoutModal
+          tour={bookingTour}
+          onClose={() => setBookingTour(null)}
+          onConfirm={handleConfirmBooking}
+          defaultName={currentUser?.name}
+          defaultEmail={currentUser?.email}
+        />
       )}
 
       {toast && (

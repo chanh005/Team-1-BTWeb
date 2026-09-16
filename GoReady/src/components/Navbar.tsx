@@ -9,8 +9,8 @@ interface NavbarProps {
   compareCount: number;
   onOpenSaved: () => void;
   onOpenAi: () => void;
-  isLoggedIn: boolean;
-  onLogin: () => void;
+  userName: string | null;
+  onOpenLogin: () => void;
   onLogout: () => void;
   onAccountAction: (label: string) => void;
 }
@@ -31,8 +31,8 @@ const Navbar: React.FC<NavbarProps> = ({
   compareCount,
   onOpenSaved,
   onOpenAi,
-  isLoggedIn,
-  onLogin,
+  userName,
+  onOpenLogin,
   onLogout,
   onAccountAction,
 }) => {
@@ -98,14 +98,16 @@ const Navbar: React.FC<NavbarProps> = ({
             <span aria-hidden>✨</span> AI Lập Lịch Trình
           </button>
 
-          {isLoggedIn ? (
+          {userName ? (
             <div className="relative" ref={accountRef}>
               <button
                 onClick={() => setAccountOpen((v) => !v)}
                 className="flex items-center gap-2 rounded-full border border-slate-200 pl-1.5 pr-3 py-1.5 text-sm font-semibold text-slate-700 hover:border-primary hover:text-primary transition-colors"
               >
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-700">TK</span>
-                <span className="hidden sm:inline">Tài khoản</span>
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-primary-100 text-xs font-bold text-primary-700">
+                  {userName.trim()[0]?.toUpperCase() ?? 'U'}
+                </span>
+                <span className="hidden sm:inline">{userName.split(' ').slice(-1)[0]}</span>
                 <span aria-hidden className="text-[10px]">▾</span>
               </button>
               {accountOpen && (
@@ -134,7 +136,7 @@ const Navbar: React.FC<NavbarProps> = ({
             </div>
           ) : (
             <button
-              onClick={onLogin}
+              onClick={onOpenLogin}
               className="rounded-full bg-primary px-3 sm:px-4 py-2 text-sm font-semibold text-white shadow-card hover:bg-primary-600 transition-colors"
             >
               Đăng nhập/Đăng ký

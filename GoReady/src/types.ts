@@ -80,6 +80,7 @@ export interface Tour {
   highlights: string[];
   cancellationPolicy: string;
   route: Coordinate[]; // full trip route (all days)
+  hidden?: boolean; // admin-only: ẩn tour khỏi trang người dùng
 }
 
 export interface AddOnService {

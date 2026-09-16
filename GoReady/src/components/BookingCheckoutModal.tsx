@@ -6,6 +6,8 @@ interface BookingCheckoutModalProps {
   tour: Tour;
   onClose: () => void;
   onConfirm: (booking: Booking) => void;
+  defaultName?: string;
+  defaultEmail?: string;
 }
 
 const ADD_ONS: AddOnService[] = [
@@ -20,15 +22,15 @@ type Step = 'form' | 'payment' | 'ticket';
 
 const qrImg = (data: string, size = 220) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`;
 
-const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClose, onConfirm }) => {
+const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClose, onConfirm, defaultName = '', defaultEmail = '' }) => {
   const [step, setStep] = React.useState<Step>('form');
   const [departureDate, setDepartureDate] = React.useState('');
   const [adults, setAdults] = React.useState(2);
   const [children, setChildren] = React.useState(0);
   const [infants, setInfants] = React.useState(0);
-  const [contactName, setContactName] = React.useState('');
+  const [contactName, setContactName] = React.useState(defaultName);
   const [contactPhone, setContactPhone] = React.useState('');
-  const [contactEmail, setContactEmail] = React.useState('');
+  const [contactEmail, setContactEmail] = React.useState(defaultEmail);
   const [note, setNote] = React.useState('');
   const [selectedAddOns, setSelectedAddOns] = React.useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>('vietqr');

@@ -15,9 +15,10 @@ function App() {
   const [adminName, setAdminName] = useLocalStorage<string>('goready_admin_name', '');
   const [page, setPage] = React.useState<AdminPage>('dashboard');
 
-  const [tours, setTours] = useLocalStorage<Tour[]>('goready_admin_tours', TOURS);
-  const [bookings, setBookings] = useLocalStorage<Booking[]>('goready_admin_bookings', MOCK_BOOKINGS);
-  const [users, setUsers] = useLocalStorage('goready_admin_users', MOCK_USERS);
+  // Shared with GoReady (the user site) via localStorage keys on the same origin (see base '/admin/' + proxy in vite.config.ts).
+  const [tours, setTours] = useLocalStorage<Tour[]>('goready_shared_tours', TOURS);
+  const [bookings, setBookings] = useLocalStorage<Booking[]>('goready_shared_bookings', MOCK_BOOKINGS);
+  const [users, setUsers] = useLocalStorage('goready_shared_users', MOCK_USERS);
 
   if (!adminName) {
     return <AdminLogin onLogin={setAdminName} />;

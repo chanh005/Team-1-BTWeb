@@ -47,7 +47,7 @@ const Footer: React.FC = () => (
     <div className="border-t border-slate-100 py-4 text-center text-xs text-slate-400">
       © {new Date().getFullYear()} GoReady. Trải nghiệm du lịch thông minh & trọn vẹn.
       {' · '}
-      <a href="http://localhost:5184" className="font-semibold text-slate-400 hover:text-primary">
+      <a href="/admin/" className="font-semibold text-slate-400 hover:text-primary">
         Đăng nhập trang quản trị
       </a>
     </div>

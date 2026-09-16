@@ -16,9 +16,10 @@ interface NavbarProps {
 }
 
 const MAIN_LINKS: { label: string; mobileLabel: string; value: NavView }[] = [
-  { label: 'Bảng tin', mobileLabel: 'Bảng tin', value: 'news' },
+  { label: 'Trang chủ', mobileLabel: 'Trang chủ', value: 'home' },
   { label: 'Khám phá Tour', mobileLabel: 'Khám phá', value: 'home' },
   { label: 'Chuyến đi của tôi', mobileLabel: 'Chuyến đi', value: 'trips' },
+  { label: 'Bảng tin', mobileLabel: 'Bảng tin', value: 'news' },
 ];
 
 const ACCOUNT_MENU_ITEMS = ['Trang cá nhân', 'Chuyến đi của tôi', 'Đánh giá của tôi', 'Cài đặt & bảo mật', 'Hỗ trợ'];
@@ -68,7 +69,7 @@ const Navbar: React.FC<NavbarProps> = ({
         <nav className="hidden md:flex items-center gap-1 rounded-full bg-slate-100 p-1 text-sm font-medium">
           {MAIN_LINKS.map((link) => (
             <button
-              key={link.value}
+              key={link.label}
               onClick={() => onNavigate(link.value)}
               className={`rounded-full px-4 py-2 transition-colors ${view === link.value ? 'bg-primary text-white shadow-card' : 'text-slate-600 hover:text-primary'}`}
             >
@@ -144,7 +145,7 @@ const Navbar: React.FC<NavbarProps> = ({
       <nav className="flex md:hidden items-center gap-1 border-t border-slate-100 bg-white px-4 py-2 text-sm font-medium">
         {MAIN_LINKS.map((link) => (
           <button
-            key={link.value}
+            key={link.label}
             onClick={() => onNavigate(link.value)}
             className={`flex-1 rounded-full px-3 py-1.5 text-center transition-colors ${view === link.value ? 'bg-primary text-white' : 'text-slate-600'}`}
           >

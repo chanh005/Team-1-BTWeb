@@ -27,13 +27,13 @@ echo.
 echo Dang cho server khoi dong xong (khoang 6 giay)...
 timeout /t 6 /nobreak >nul
 
-start "" "http://localhost:5183/"
+start "" "http://localhost:5183/user.index.html"
 
 echo.
 echo ============================================
 echo   GoReady da san sang!
-echo   - Trang nguoi dung: http://localhost:5183/
-echo   - Trang quan tri  : http://localhost:5183/admin/
+echo   - Trang nguoi dung: http://localhost:5183/user.index.html
+echo   - Trang quan tri  : http://localhost:5183/admin.index.html
 echo.
 echo   Luu y: dung dong 2 cua so "GoReady Backend"
 echo   va "GoReady Frontend" - dong cua so nao thi

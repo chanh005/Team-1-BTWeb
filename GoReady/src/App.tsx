@@ -218,7 +218,7 @@ function App() {
 
       {view === 'home' && (
         <>
-          <HeroSearch filters={filters} onChange={patchFilters} tours={visibleTours} onSearch={() => goToExplore(filters.destination)} />
+          <HeroSearch filters={filters} onChange={patchFilters} onSearch={() => goToExplore(filters.destination)} />
           <section className="container-px mx-auto py-8">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-heading text-xl font-bold text-slate-900">Tour nổi bật</h2>

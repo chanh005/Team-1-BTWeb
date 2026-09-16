@@ -1,10 +1,9 @@
 import React from 'react';
-import type { GroupSizeTag, SearchFilterState, Tour } from '../types';
+import type { GroupSizeTag, SearchFilterState } from '../types';
 
 interface HeroSearchProps {
   filters: SearchFilterState;
   onChange: (patch: Partial<SearchFilterState>) => void;
-  tours: Tour[];
   onSearch: () => void;
 }
 
@@ -16,15 +15,7 @@ const GROUP_OPTIONS: { label: string; value: GroupSizeTag | 'all' }[] = [
   { label: 'Nhóm bạn', value: 'Nhóm bạn' },
 ];
 
-const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, tours, onSearch }) => {
-  const trending = React.useMemo(() => {
-    const counts = new Map<string, number>();
-    tours.forEach((t) => counts.set(t.destination, (counts.get(t.destination) ?? 0) + 1));
-    return Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8);
-  }, [tours]);
-
+const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, onSearch }) => {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 text-white">
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
@@ -75,22 +66,6 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, tours, onSea
           >
             Tìm tour ngay
           </button>
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          {trending.map(([dest, count]) => (
-            <button
-              key={dest}
-              onClick={() => {
-                onChange({ destination: dest });
-                onSearch();
-              }}
-              className="flex items-center gap-1.5 rounded-full bg-white/15 px-3.5 py-1.5 text-xs font-medium backdrop-blur transition hover:bg-white/25"
-            >
-              {dest}
-              <span className="rounded-full bg-cream px-1.5 py-0.5 text-[10px] font-bold text-primary-700">{count} tour</span>
-            </button>
-          ))}
         </div>
       </div>
     </section>

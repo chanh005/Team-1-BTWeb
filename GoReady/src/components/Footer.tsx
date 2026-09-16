@@ -26,6 +26,9 @@ const Footer: React.FC = () => (
         <ul className="space-y-2 text-sm text-slate-500">
           <li>Hotline 24/7: 1900 1080</li>
           <li>Trung tâm trợ giúp</li>
+          <li>Câu hỏi thường gặp (FAQ)</li>
+          <li>Liên hệ</li>
+          <li>Chính sách</li>
           <li>Chính sách hoàn hủy</li>
           <li>Điều khoản dịch vụ</li>
         </ul>

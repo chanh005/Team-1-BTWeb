@@ -1,8 +1,10 @@
 import React from 'react';
-import Navbar from './components/Navbar';
+import Navbar, { type NavView } from './components/Navbar';
 import HeroSearch from './components/HeroSearch';
 import FilterBar from './components/FilterBar';
 import TourList from './components/TourList';
+import FeaturedDestinations from './components/FeaturedDestinations';
+import NewsFeed from './components/NewsFeed';
 import TourDetailModal from './components/TourDetailModal';
 import SavedAndCompareModal from './components/SavedAndCompareModal';
 import AiItineraryModal from './components/AiItineraryModal';
@@ -28,7 +30,7 @@ const INITIAL_FILTERS: SearchFilterState = {
 const priceOf = (t: Tour) => t.discountPrice ?? t.price;
 
 function App() {
-  const [view, setView] = React.useState<'home' | 'trips'>('home');
+  const [view, setView] = React.useState<NavView>('home');
   const [filters, setFilters] = React.useState<SearchFilterState>(INITIAL_FILTERS);
   const [appliedDestination, setAppliedDestination] = React.useState('');
 
@@ -37,6 +39,7 @@ function App() {
   const [bookings, setBookings] = useLocalStorage<Booking[]>('goready_bookings', []);
   const [checklist, setChecklist] = useLocalStorage<ChecklistItem[]>('goready_checklist', DEFAULT_CHECKLIST);
   const [aiPlans, setAiPlans] = useLocalStorage<AiPlannerResult[]>('goready_ai_plans', []);
+  const [isLoggedIn, setIsLoggedIn] = useLocalStorage<boolean>('goready_logged_in', false);
 
   const [activeTour, setActiveTour] = React.useState<Tour | null>(null);
   const [bookingTour, setBookingTour] = React.useState<Tour | null>(null);
@@ -129,6 +132,12 @@ function App() {
   const savedTours = TOURS.filter((t) => savedIds.includes(t.id));
   const compareTours = TOURS.filter((t) => compareIds.includes(t.id));
 
+  const handleSelectDestination = (destination: string) => {
+    patchFilters({ destination });
+    setAppliedDestination(destination);
+    document.getElementById('tour-list')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-surface font-body">
       <Navbar
@@ -138,13 +147,23 @@ function App() {
         compareCount={compareIds.length}
         onOpenSaved={() => setShowSaved(true)}
         onOpenAi={() => setShowAi(true)}
+        isLoggedIn={isLoggedIn}
+        onLogin={() => {
+          setIsLoggedIn(true);
+          notify('Đăng nhập thành công! Chào mừng bạn quay lại GoReady');
+        }}
+        onLogout={() => {
+          setIsLoggedIn(false);
+          notify('Bạn đã đăng xuất');
+        }}
+        onAccountAction={(label) => notify(`${label}: tính năng đang được phát triển`)}
       />
 
-      {view === 'home' ? (
+      {view === 'home' && (
         <>
           <HeroSearch filters={filters} onChange={patchFilters} tours={TOURS} onSearch={() => setAppliedDestination(filters.destination)} />
           <FilterBar filters={filters} onChange={patchFilters} resultCount={filteredTours.length} />
-          <main className="container-px mx-auto py-8">
+          <main id="tour-list" className="container-px mx-auto py-8">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-heading text-xl font-bold text-slate-900">
                 {appliedDestination ? `Kết quả cho "${appliedDestination}"` : 'Tất cả tour nổi bật'}
@@ -167,8 +186,13 @@ function App() {
               onToggleCompare={toggleCompare}
             />
           </main>
+          <FeaturedDestinations tours={TOURS} onSelectDestination={handleSelectDestination} />
         </>
-      ) : (
+      )}
+
+      {view === 'news' && <NewsFeed />}
+
+      {view === 'trips' && (
         <MyTripsDashboard
           bookings={bookings}
           tours={TOURS}

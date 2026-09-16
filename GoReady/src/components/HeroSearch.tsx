@@ -30,15 +30,9 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, tours, onSea
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
       <div className="pointer-events-none absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-cream/20 blur-3xl" />
       <div className="container-px relative mx-auto py-14 sm:py-20">
-        <span className="inline-flex items-center gap-2 rounded-full bg-white/15 px-4 py-1.5 text-xs font-semibold tracking-wide backdrop-blur">
-          ✈️ Nền tảng du lịch trọn gói #1 Việt Nam
-        </span>
-        <h1 className="mt-5 max-w-2xl font-heading text-3xl font-bold leading-tight sm:text-5xl">
+        <h1 className="max-w-2xl font-heading text-3xl font-bold leading-tight sm:text-5xl">
           Sẵn sàng cho hành trình tiếp theo cùng <span className="text-cream">GoReady</span>
         </h1>
-        <p className="mt-4 max-w-xl text-sm text-white/85 sm:text-base">
-          Tìm kiếm, so sánh và đặt tour trọn gói chỉ trong vài phút — từ biển đảo Việt Nam đến những thành phố sôi động châu Á.
-        </p>
 
         <div className="mt-8 rounded-2xl bg-white p-4 shadow-card sm:p-5">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">

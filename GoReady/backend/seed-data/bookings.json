@@ -1,0 +1,50 @@
+[
+  {
+    "id": "bk-01", "bookingCode": "GR7K2M9P", "tourId": "phu-quoc", "departureDate": "2026-10-12",
+    "adults": 2, "children": 1, "infants": 0, "addOns": [],
+    "contactName": "Nguyễn Minh Anh", "contactPhone": "0901234567", "contactEmail": "minhanh.nguyen@gmail.com",
+    "totalPrice": 14370000, "paymentMethod": "vietqr", "status": "confirmed", "createdAt": "2026-09-01T08:30:00.000Z",
+    "guideName": "Trần Văn Hùng", "guidePhone": "0909112233", "hotelName": "Sunset Sanato Resort",
+    "pickupTime": "06:30", "pickupLocation": "Sân bay Phú Quốc"
+  },
+  {
+    "id": "bk-02", "bookingCode": "GR3F8Q1X", "tourId": "danang-hoian", "departureDate": "2026-10-20",
+    "adults": 2, "children": 0, "infants": 0, "addOns": [],
+    "contactName": "Trần Gia Bảo", "contactPhone": "0912345678", "contactEmail": "giabao.tran@gmail.com",
+    "totalPrice": 9580000, "paymentMethod": "momo", "status": "upcoming", "createdAt": "2026-09-05T14:12:00.000Z",
+    "guideName": "Lê Thị Mai", "guidePhone": "0909223344", "hotelName": "Hoi An Riverside Hotel",
+    "pickupTime": "07:00", "pickupLocation": "Sân bay Đà Nẵng"
+  },
+  {
+    "id": "bk-03", "bookingCode": "GR9D4L7Z", "tourId": "ha-giang-loop", "departureDate": "2026-05-15",
+    "adults": 4, "children": 0, "infants": 0, "addOns": [],
+    "contactName": "Phạm Đức Duy", "contactPhone": "0934567890", "contactEmail": "ducduy.pham@gmail.com",
+    "totalPrice": 14360000, "paymentMethod": "card", "status": "completed", "createdAt": "2026-04-02T09:45:00.000Z",
+    "guideName": "Sùng A Chớ", "guidePhone": "0909334455", "hotelName": "Hà Giang Panorama Homestay",
+    "pickupTime": "05:30", "pickupLocation": "TP. Hà Giang"
+  },
+  {
+    "id": "bk-04", "bookingCode": "GR1H6B2Y", "tourId": "nha-trang", "departureDate": "2026-11-02",
+    "adults": 2, "children": 2, "infants": 1, "addOns": [],
+    "contactName": "Đặng Ngọc Lan", "contactPhone": "0967890123", "contactEmail": "ngoclan.dang@gmail.com",
+    "totalPrice": 23940000, "paymentMethod": "vietqr", "status": "upcoming", "createdAt": "2026-09-10T11:05:00.000Z",
+    "guideName": "Nguyễn Thị Hồng", "guidePhone": "0909445566", "hotelName": "VinWonders Beach Resort",
+    "pickupTime": "08:00", "pickupLocation": "Sân bay Cam Ranh"
+  },
+  {
+    "id": "bk-05", "bookingCode": "GR5T3W8R", "tourId": "tokyo", "departureDate": "2026-03-18",
+    "adults": 2, "children": 0, "infants": 0, "addOns": [],
+    "contactName": "Vũ Anh Khoa", "contactPhone": "0956789012", "contactEmail": "anhkhoa.vu@gmail.com",
+    "totalPrice": 43980000, "paymentMethod": "card", "status": "cancelled", "createdAt": "2026-02-01T16:20:00.000Z",
+    "guideName": "Yuki Tanaka", "guidePhone": "+81 90 1122 3344", "hotelName": "Shinjuku Central Hotel",
+    "pickupTime": "09:00", "pickupLocation": "Sân bay Narita"
+  },
+  {
+    "id": "bk-06", "bookingCode": "GR8N2C5V", "tourId": "da-lat", "departureDate": "2026-10-05",
+    "adults": 3, "children": 0, "infants": 0, "addOns": [],
+    "contactName": "Nguyễn Minh Anh", "contactPhone": "0901234567", "contactEmail": "minhanh.nguyen@gmail.com",
+    "totalPrice": 7170000, "paymentMethod": "momo", "status": "confirmed", "createdAt": "2026-09-12T10:00:00.000Z",
+    "guideName": "Hồ Văn Tâm", "guidePhone": "0909556677", "hotelName": "Dalat Hill Homestay",
+    "pickupTime": "06:00", "pickupLocation": "Sân bay Liên Khương"
+  }
+]

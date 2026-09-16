@@ -1,12 +1,11 @@
 import React from 'react';
-import type { Booking, Tour } from '../types';
-import type { AdminUser } from '../data/mockUsers';
-import { formatVND } from '../utils/format';
+import type { AccountUser, Booking, Tour } from '../../types';
+import { formatVND } from '../../utils/format';
 
 interface DashboardProps {
   tours: Tour[];
   bookings: Booking[];
-  users: AdminUser[];
+  users: AccountUser[];
 }
 
 const STATUS_LABEL: Record<Booking['status'], string> = {

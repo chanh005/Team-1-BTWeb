@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Tour } from '../types';
-import { formatVND, uid } from '../utils/format';
+import type { Tour } from '../../types';
+import { formatVND, uid } from '../../utils/format';
 
 interface TourManagementProps {
   tours: Tour[];

@@ -1,6 +1,6 @@
 import React from 'react';
-import type { Booking, BookingStatus, Tour } from '../types';
-import { formatShortDate, formatVND } from '../utils/format';
+import type { Booking, BookingStatus, Tour } from '../../types';
+import { formatShortDate, formatVND } from '../../utils/format';
 
 interface BookingManagementProps {
   bookings: Booking[];

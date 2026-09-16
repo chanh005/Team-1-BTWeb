@@ -157,6 +157,16 @@ export interface AiPlannerCostItem {
   amount: number;
 }
 
+export interface AccountUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  joinedAt: string; // ISO date
+  totalBookings: number;
+  status: 'active' | 'locked';
+}
+
 export interface AiPlannerResult {
   destination: string;
   days: number;

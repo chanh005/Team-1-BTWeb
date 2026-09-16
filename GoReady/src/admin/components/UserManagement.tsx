@@ -1,9 +1,9 @@
 import React from 'react';
-import type { AdminUser } from '../data/mockUsers';
-import { formatShortDate } from '../utils/format';
+import type { AccountUser } from '../../types';
+import { formatShortDate } from '../../utils/format';
 
 interface UserManagementProps {
-  users: AdminUser[];
+  users: AccountUser[];
   onToggleStatus: (userId: string) => void;
 }
 

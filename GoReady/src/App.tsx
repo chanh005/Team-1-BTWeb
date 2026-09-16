@@ -12,18 +12,12 @@ import BookingCheckoutModal from './components/BookingCheckoutModal';
 import MyTripsDashboard from './components/MyTripsDashboard';
 import LoginModal from './components/LoginModal';
 import Footer from './components/Footer';
-import { TOURS } from './data/tours';
 import { DEFAULT_CHECKLIST } from './data/checklist';
-import { MOCK_USERS as SEED_USERS, type AdminUser as AccountUser } from './data/mockUsers';
-import { MOCK_BOOKINGS as SEED_BOOKINGS } from './data/mockBookings';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { usePolledResource } from './hooks/usePolledResource';
+import { api } from './api';
 import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, SearchFilterState, Tour } from './types';
 import { uid } from './utils/format';
-
-// Shared with GoReady-Admin via localStorage keys on the same origin (see /admin proxy in vite.config.ts).
-const SHARED_TOURS_KEY = 'goready_shared_tours';
-const SHARED_BOOKINGS_KEY = 'goready_shared_bookings';
-const SHARED_USERS_KEY = 'goready_shared_users';
 
 const INITIAL_FILTERS: SearchFilterState = {
   destination: '',
@@ -46,12 +40,17 @@ function App() {
   const [compareIds, setCompareIds] = useLocalStorage<string[]>('goready_compare', []);
   const [checklist, setChecklist] = useLocalStorage<ChecklistItem[]>('goready_checklist', DEFAULT_CHECKLIST);
   const [aiPlans, setAiPlans] = useLocalStorage<AiPlannerResult[]>('goready_ai_plans', []);
-
-  // Shared state: read/written by both this app and GoReady-Admin (same origin via /admin proxy).
-  const [tours, setTours] = useLocalStorage<Tour[]>(SHARED_TOURS_KEY, TOURS);
-  const [bookings, setBookings] = useLocalStorage<Booking[]>(SHARED_BOOKINGS_KEY, SEED_BOOKINGS);
-  const [accounts, setAccounts] = useLocalStorage<AccountUser[]>(SHARED_USERS_KEY, SEED_USERS);
   const [currentUserEmail, setCurrentUserEmail] = useLocalStorage<string>('goready_current_user_email', '');
+
+  // Shared state: served by the backend API, polled so changes made from the
+  // Admin console (add/edit/hide a tour, change a booking status, lock a user)
+  // show up here without a manual refresh.
+  const { data: toursData, refresh: refreshTours } = usePolledResource(api.getTours);
+  const { data: bookingsData, refresh: refreshBookings } = usePolledResource(api.getBookings);
+  const { data: accountsData, refresh: refreshAccounts } = usePolledResource(api.getUsers);
+  const tours = toursData ?? [];
+  const bookings = bookingsData ?? [];
+  const accounts = accountsData ?? [];
 
   const [activeTour, setActiveTour] = React.useState<Tour | null>(null);
   const [bookingTour, setBookingTour] = React.useState<Tour | null>(null);
@@ -70,9 +69,9 @@ function App() {
     [accounts, currentUserEmail]
   );
 
-  // If an admin locks the account currently browsing (live via the shared "accounts" key), sign them out.
+  // If an admin locks the account currently browsing (picked up on the next poll), sign them out.
   React.useEffect(() => {
-    if (currentUserEmail && !currentUser) return; // account removed, ignore
+    if (currentUserEmail && !currentUser) return; // account list hasn't loaded yet, or was removed
     if (currentUser && currentUser.status === 'locked') {
       setCurrentUserEmail('');
       notify('Tài khoản của bạn đã bị quản trị viên khoá.');
@@ -149,12 +148,14 @@ function App() {
   const handleAddChecklistItem = (category: ChecklistCategory, label: string) =>
     setChecklist((prev) => [...prev, { id: uid('chk'), category, label, checked: false, custom: true }]);
 
-  const handleConfirmBooking = (booking: Booking) => {
-    setBookings((prev) => [...prev, booking]);
-    setAccounts((prev) =>
-      prev.map((u) => (u.email.toLowerCase() === booking.contactEmail.toLowerCase() ? { ...u, totalBookings: u.totalBookings + 1 } : u))
-    );
-    notify('Đặt tour thành công! Xem vé tại "Chuyến đi của tôi"');
+  const handleConfirmBooking = async (booking: Booking) => {
+    try {
+      await api.createBooking(booking);
+      await Promise.all([refreshBookings(), refreshAccounts()]);
+      notify('Đặt tour thành công! Xem vé tại "Chuyến đi của tôi"');
+    } catch {
+      notify('Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend đã chạy chưa.');
+    }
   };
 
   const handleSaveAiPlan = (plan: AiPlannerResult) => {
@@ -180,30 +181,21 @@ function App() {
 
   const handleSelectDestination = (destination: string) => goToExplore(destination);
 
-  const handleLoginSubmit = (name: string, email: string) => {
-    const existing = accounts.find((u) => u.email.toLowerCase() === email.toLowerCase());
-    if (existing) {
-      if (existing.status === 'locked') {
+  const handleLoginSubmit = async (name: string, email: string) => {
+    try {
+      const account = await api.login(name, email);
+      setCurrentUserEmail(account.email);
+      refreshAccounts();
+      notify(`Đăng nhập thành công! Chào mừng bạn, ${account.name}`);
+      setShowLogin(false);
+    } catch (err) {
+      const status = (err as Error & { status?: number }).status;
+      if (status === 403) {
         notify('Tài khoản này đã bị quản trị viên khoá. Vui lòng liên hệ hỗ trợ.');
-        return;
+      } else {
+        notify('Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend đã chạy chưa.');
       }
-      setCurrentUserEmail(existing.email);
-      notify(`Đăng nhập thành công! Chào mừng bạn quay lại, ${existing.name}`);
-    } else {
-      const newAccount: AccountUser = {
-        id: uid('usr'),
-        name,
-        email,
-        phone: '',
-        joinedAt: new Date().toISOString().slice(0, 10),
-        totalBookings: 0,
-        status: 'active',
-      };
-      setAccounts((prev) => [...prev, newAccount]);
-      setCurrentUserEmail(email);
-      notify('Đăng ký & đăng nhập thành công! Chào mừng bạn đến với GoReady');
     }
-    setShowLogin(false);
   };
 
   return (

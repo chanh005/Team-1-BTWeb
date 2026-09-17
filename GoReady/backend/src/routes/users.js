@@ -1,43 +1,29 @@
 import { Router } from 'express';
-import { randomUUID } from 'node:crypto';
-import { db } from '../db.js';
+import { getPool } from '../../../lib/db.js';
+import { listUsers, loginOrRegister, toggleUserStatus } from '../../../lib/users.js';
 
 const router = Router();
+const pool = getPool();
 
-router.get('/', (_req, res) => {
-  res.json(db.prepare('SELECT * FROM users ORDER BY joinedAt DESC').all());
+router.get('/', async (_req, res) => {
+  res.json(await listUsers(pool));
 });
 
-// Demo auth: no password, just name + email. Creates the account on first login.
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const { name, email } = req.body;
   if (!name || !email) return res.status(400).json({ error: 'name and email are required' });
-
-  const existing = db.prepare('SELECT * FROM users WHERE lower(email) = lower(?)').get(email);
-  if (existing) {
-    if (existing.status === 'locked') return res.status(403).json({ error: 'locked' });
-    return res.json(existing);
+  try {
+    res.json(await loginOrRegister(pool, name, email));
+  } catch (err) {
+    if (err.status === 403) return res.status(403).json({ error: 'locked' });
+    throw err;
   }
-
-  const user = {
-    id: `usr-${randomUUID()}`,
-    name,
-    email,
-    phone: '',
-    joinedAt: new Date().toISOString().slice(0, 10),
-    totalBookings: 0,
-    status: 'active',
-  };
-  db.prepare('INSERT INTO users (id, name, email, phone, joinedAt, totalBookings, status) VALUES (@id, @name, @email, @phone, @joinedAt, @totalBookings, @status)').run(user);
-  res.status(201).json(user);
 });
 
-router.patch('/:id/status', (req, res) => {
-  const existing = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
-  if (!existing) return res.status(404).json({ error: 'User not found' });
-  const status = existing.status === 'active' ? 'locked' : 'active';
-  db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, req.params.id);
-  res.json(db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id));
+router.patch('/:id/status', async (req, res) => {
+  const user = await toggleUserStatus(pool, req.params.id);
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  res.json(user);
 });
 
 export default router;

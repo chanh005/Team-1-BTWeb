@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import './db.js';
+import { getPool } from '../../lib/db.js';
+import { ensureSchema, seedIfEmpty } from '../../lib/schema.js';
 import toursRouter from './routes/tours.js';
 import bookingsRouter from './routes/bookings.js';
 import usersRouter from './routes/users.js';
@@ -17,6 +18,10 @@ app.use('/api/users', usersRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+const pool = getPool();
+await ensureSchema(pool);
+await seedIfEmpty(pool);
+
 app.listen(PORT, () => {
-  console.log(`GoReady backend listening on http://localhost:${PORT}`);
+  console.log(`GoReady backend (local dev, Postgres) listening on http://localhost:${PORT}`);
 });

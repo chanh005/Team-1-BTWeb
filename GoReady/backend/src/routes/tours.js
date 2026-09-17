@@ -1,41 +1,32 @@
 import { Router } from 'express';
-import { randomUUID } from 'node:crypto';
-import { db, rowToTour, tourToRow } from '../db.js';
+import { getPool } from '../../../lib/db.js';
+import { listTours, createTour, updateTour, toggleTourHidden, deleteTour } from '../../../lib/tours.js';
 
 const router = Router();
+const pool = getPool();
 
-router.get('/', (_req, res) => {
-  const rows = db.prepare('SELECT * FROM tours').all();
-  res.json(rows.map(rowToTour));
+router.get('/', async (_req, res) => {
+  res.json(await listTours(pool));
 });
 
-router.post('/', (req, res) => {
-  const tour = { ...req.body, id: req.body.id || `tour-${randomUUID()}`, slug: req.body.slug || `tour-${randomUUID()}` };
-  const row = tourToRow(tour);
-  const cols = Object.keys(row);
-  db.prepare(`INSERT INTO tours (${cols.join(',')}) VALUES (${cols.map((c) => `@${c}`).join(',')})`).run(row);
-  res.status(201).json(rowToTour(db.prepare('SELECT * FROM tours WHERE id = ?').get(tour.id)));
+router.post('/', async (req, res) => {
+  res.status(201).json(await createTour(pool, req.body));
 });
 
-router.put('/:id', (req, res) => {
-  const existingRow = db.prepare('SELECT * FROM tours WHERE id = ?').get(req.params.id);
-  if (!existingRow) return res.status(404).json({ error: 'Tour not found' });
-  const merged = { ...rowToTour(existingRow), ...req.body, id: req.params.id };
-  const row = tourToRow(merged);
-  const cols = Object.keys(row).filter((c) => c !== 'id');
-  db.prepare(`UPDATE tours SET ${cols.map((c) => `${c} = @${c}`).join(', ')} WHERE id = @id`).run(row);
-  res.json(rowToTour(db.prepare('SELECT * FROM tours WHERE id = ?').get(req.params.id)));
+router.put('/:id', async (req, res) => {
+  const tour = await updateTour(pool, req.params.id, req.body);
+  if (!tour) return res.status(404).json({ error: 'Tour not found' });
+  res.json(tour);
 });
 
-router.patch('/:id/hidden', (req, res) => {
-  const existingRow = db.prepare('SELECT * FROM tours WHERE id = ?').get(req.params.id);
-  if (!existingRow) return res.status(404).json({ error: 'Tour not found' });
-  db.prepare('UPDATE tours SET hidden = ? WHERE id = ?').run(existingRow.hidden ? 0 : 1, req.params.id);
-  res.json(rowToTour(db.prepare('SELECT * FROM tours WHERE id = ?').get(req.params.id)));
+router.patch('/:id/hidden', async (req, res) => {
+  const tour = await toggleTourHidden(pool, req.params.id);
+  if (!tour) return res.status(404).json({ error: 'Tour not found' });
+  res.json(tour);
 });
 
-router.delete('/:id', (req, res) => {
-  db.prepare('DELETE FROM tours WHERE id = ?').run(req.params.id);
+router.delete('/:id', async (req, res) => {
+  await deleteTour(pool, req.params.id);
   res.status(204).end();
 });
 

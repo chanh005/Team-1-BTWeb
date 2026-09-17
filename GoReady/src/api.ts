@@ -1,8 +1,8 @@
 import type { AccountUser, Booking, BookingStatus, Tour } from './types';
 
-// Absolute URL (not a relative path) so both the user site and the admin
-// console can call the same backend regardless of which page/port serves them.
-const API_BASE = 'http://localhost:4000/api';
+// Relative path: in dev it's proxied to the local Express server (vite.config.ts),
+// and on Vercel it resolves to the serverless functions under /api on the same origin.
+const API_BASE = '/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {

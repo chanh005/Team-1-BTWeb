@@ -4,7 +4,7 @@ interface AdminLoginProps {
   onLogin: (name: string) => void;
 }
 
-const USER_SITE_URL = '/user.index.html';
+const USER_SITE_URL = '/';
 
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   const [email, setEmail] = React.useState('admin@goready.vn');

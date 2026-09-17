@@ -17,7 +17,7 @@ const NAV_ITEMS: { label: string; value: AdminPage; icon: string }[] = [
   { label: 'Người dùng', value: 'users', icon: '👤' },
 ];
 
-const USER_SITE_URL = '/user.index.html';
+const USER_SITE_URL = '/';
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, onLogout, children }) => {
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);

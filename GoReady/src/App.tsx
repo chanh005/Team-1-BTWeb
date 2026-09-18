@@ -11,12 +11,13 @@ import AiItineraryModal from './components/AiItineraryModal';
 import BookingCheckoutModal from './components/BookingCheckoutModal';
 import MyTripsDashboard from './components/MyTripsDashboard';
 import LoginModal from './components/LoginModal';
+import AccountPage from './components/AccountPage';
 import Footer from './components/Footer';
 import { DEFAULT_CHECKLIST } from './data/checklist';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { usePolledResource } from './hooks/usePolledResource';
 import { api } from './api';
-import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, SearchFilterState, Tour } from './types';
+import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, SearchFilterState, Tour, UserReview } from './types';
 import { uid } from './utils/format';
 
 const INITIAL_FILTERS: SearchFilterState = {
@@ -33,6 +34,7 @@ const priceOf = (t: Tour) => t.discountPrice ?? t.price;
 
 function App() {
   const [view, setView] = React.useState<NavView>('home');
+  const [accountTab, setAccountTab] = React.useState<'profile' | 'reviews' | 'settings' | 'support'>('profile');
   const [filters, setFilters] = React.useState<SearchFilterState>(INITIAL_FILTERS);
   const [appliedDestination, setAppliedDestination] = React.useState('');
 
@@ -40,7 +42,9 @@ function App() {
   const [compareIds, setCompareIds] = useLocalStorage<string[]>('goready_compare', []);
   const [checklist, setChecklist] = useLocalStorage<ChecklistItem[]>('goready_checklist', DEFAULT_CHECKLIST);
   const [aiPlans, setAiPlans] = useLocalStorage<AiPlannerResult[]>('goready_ai_plans', []);
+  const [userReviews, setUserReviews] = useLocalStorage<UserReview[]>('goready_user_reviews', []);
   const [currentUserEmail, setCurrentUserEmail] = useLocalStorage<string>('goready_current_user_email', '');
+  const [currentUserRole, setCurrentUserRole] = useLocalStorage<'user' | 'admin' | ''>('goready_current_user_role', '');
 
   // Shared state: served by the backend API, polled so changes made from the
   // Admin console (add/edit/hide a tour, change a booking status, lock a user)
@@ -74,6 +78,7 @@ function App() {
     if (currentUserEmail && !currentUser) return; // account list hasn't loaded yet, or was removed
     if (currentUser && currentUser.status === 'locked') {
       setCurrentUserEmail('');
+      setCurrentUserRole('');
       notify('Tài khoản của bạn đã bị quản trị viên khoá.');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -163,6 +168,18 @@ function App() {
     notify('Đã lưu lịch trình AI vào chuyến đi của tôi');
   };
 
+  const handleAddReview = (review: Omit<UserReview, 'id' | 'date' | 'authorEmail'>) => {
+    if (!currentUserEmail) return;
+    const newReview: UserReview = {
+      ...review,
+      id: uid('rev'),
+      date: new Date().toISOString(),
+      authorEmail: currentUserEmail.toLowerCase(),
+    };
+    setUserReviews((prev) => [newReview, ...prev]);
+    notify('Đánh giá của bạn đã được gửi thành công!');
+  };
+
   const savedTours = tours.filter((t) => savedIds.includes(t.id));
   const compareTours = tours.filter((t) => compareIds.includes(t.id));
 
@@ -181,21 +198,47 @@ function App() {
 
   const handleSelectDestination = (destination: string) => goToExplore(destination);
 
-  const handleLoginSubmit = async (name: string, email: string) => {
+  const handleLoginSubmit = async (email: string, password: string) => {
     try {
-      const account = await api.login(name, email);
+      const account = await api.login(email, password);
       setCurrentUserEmail(account.email);
+      setCurrentUserRole(account.role ?? 'user');
       refreshAccounts();
-      notify(`Đăng nhập thành công! Chào mừng bạn, ${account.name}`);
+      if (account.role === 'admin') {
+        notify(`Đăng nhập Admin thành công! Chào mừng, ${account.name} 👑`);
+      } else {
+        notify(`Đăng nhập thành công! Chào mừng bạn, ${account.name}`);
+      }
       setShowLogin(false);
     } catch (err) {
-      const status = (err as Error & { status?: number }).status;
-      if (status === 403) {
-        notify('Tài khoản này đã bị quản trị viên khoá. Vui lòng liên hệ hỗ trợ.');
-      } else {
-        notify('Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend đã chạy chưa.');
-      }
+      // Re-throw so LoginModal can handle and display the error
+      throw err;
     }
+  };
+
+  const handleRegisterSubmit = async (name: string, email: string, password: string) => {
+    try {
+      const account = await api.register(name, email, password);
+      setCurrentUserEmail(account.email);
+      setCurrentUserRole(account.role ?? 'user');
+      refreshAccounts();
+      notify(`Đăng ký thành công! Chào mừng bạn, ${account.name} 🎉`);
+      setShowLogin(false);
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const handleUpdateAvatar = async (avatar: string) => {
+    if (!currentUser) return;
+    await api.updateAvatar(currentUser.id, avatar);
+    refreshAccounts();
+  };
+
+  const handleCancelBooking = async (bookingId: string) => {
+    await api.updateBookingStatus(bookingId, 'cancelled');
+    refreshBookings();
+    notify('Đã hủy tour. Yêu cầu hoàn tiền của bạn đang được xử lý.');
   };
 
   return (
@@ -208,12 +251,19 @@ function App() {
         onOpenSaved={() => setShowSaved(true)}
         onOpenAi={() => setShowAi(true)}
         userName={currentUser?.name ?? null}
+        userRole={(currentUserRole as 'user' | 'admin') || null}
+        avatarUrl={currentUser?.avatar ?? null}
         onOpenLogin={() => setShowLogin(true)}
         onLogout={() => {
           setCurrentUserEmail('');
+          setCurrentUserRole('');
+          setView('home');
           notify('Bạn đã đăng xuất');
         }}
-        onAccountAction={(label) => notify(`${label}: tính năng đang được phát triển`)}
+        onOpenAccountTab={(tab) => {
+          setAccountTab(tab);
+          setView('account');
+        }}
       />
 
       {view === 'home' && (
@@ -300,7 +350,27 @@ function App() {
           checklist={checklist}
           onToggleChecklist={handleToggleChecklist}
           onAddChecklistItem={handleAddChecklistItem}
+          onCancelBooking={handleCancelBooking}
           aiPlans={aiPlans}
+        />
+      )}
+
+      {view === 'account' && currentUser && (
+        <AccountPage
+          key={accountTab}
+          initialTab={accountTab}
+          currentUser={currentUser}
+          myBookings={myBookings}
+          tours={tours}
+          userReviews={userReviews.filter(r => r.authorEmail === currentUser.email.toLowerCase())}
+          onLogout={() => {
+            setCurrentUserEmail('');
+            setCurrentUserRole('');
+            setView('home');
+            notify('Bạn đã đăng xuất');
+          }}
+          onNavigate={(v) => setView(v)}
+          onUpdateAvatar={handleUpdateAvatar}
         />
       )}
 
@@ -310,6 +380,9 @@ function App() {
         <TourDetailModal
           tour={activeTour}
           isSaved={savedIds.includes(activeTour.id)}
+          currentUser={currentUser}
+          userReviews={userReviews}
+          onAddReview={handleAddReview}
           onClose={() => setActiveTour(null)}
           onToggleSave={toggleSave}
           onBook={(t) => {
@@ -339,7 +412,7 @@ function App() {
 
       {showAi && <AiItineraryModal onClose={() => setShowAi(false)} onSavePlan={handleSaveAiPlan} />}
 
-      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onSubmit={handleLoginSubmit} />}
+      {showLogin && <LoginModal onClose={() => setShowLogin(false)} onLogin={handleLoginSubmit} onRegister={handleRegisterSubmit} />}
 
       {bookingTour && (
         <BookingCheckoutModal

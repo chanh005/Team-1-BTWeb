@@ -32,6 +32,11 @@ export const api = {
     request<Booking>(`/bookings/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
   getUsers: () => request<AccountUser[]>('/users'),
-  login: (name: string, email: string) => request<AccountUser>('/users/login', { method: 'POST', body: JSON.stringify({ name, email }) }),
+  login: (email: string, password: string) =>
+    request<AccountUser>('/users/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  register: (name: string, email: string, password: string) =>
+    request<AccountUser>('/users/register', { method: 'POST', body: JSON.stringify({ name, email, password }) }),
   toggleUserStatus: (id: string) => request<AccountUser>(`/users/${id}/status`, { method: 'PATCH' }),
+  updateAvatar: (id: string, avatar: string) =>
+    request<AccountUser>(`/users/${id}/avatar`, { method: 'PATCH', body: JSON.stringify({ avatar }) }),
 };

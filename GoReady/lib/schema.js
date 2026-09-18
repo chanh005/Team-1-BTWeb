@@ -70,7 +70,10 @@ const CREATE_SQL = `
     phone TEXT,
     "joinedAt" TEXT,
     "totalBookings" INTEGER DEFAULT 0,
-    status TEXT DEFAULT 'active'
+    status TEXT DEFAULT 'active',
+    password_hash TEXT,
+    role TEXT DEFAULT 'user',
+    avatar TEXT
   );
 `;
 
@@ -79,6 +82,10 @@ let ensured = false;
 export async function ensureSchema(pool) {
   if (ensured) return;
   await pool.query(CREATE_SQL);
+  // Safe migrations for existing databases that don't have these columns yet
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`);
   ensured = true;
 }
 
@@ -92,7 +99,11 @@ async function insertRow(pool, table, jsonFields, row) {
 
 export async function seedIfEmpty(pool) {
   const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM tours');
-  if (rows[0].count > 0) return;
+  if (rows[0].count > 0) {
+    // Even if tours exist, ensure admin account exists
+    await ensureAdminAccount(pool);
+    return;
+  }
 
   const tours = JSON.parse(readFileSync(join(__dirname, 'seed-data', 'tours.json'), 'utf-8'));
   const users = JSON.parse(readFileSync(join(__dirname, 'seed-data', 'users.json'), 'utf-8'));
@@ -102,5 +113,34 @@ export async function seedIfEmpty(pool) {
   for (const u of users) await insertRow(pool, 'users', [], u);
   for (const b of bookings) await insertRow(pool, 'bookings', ['addOns'], b);
 
+  await ensureAdminAccount(pool);
   console.log(`Seeded database: ${tours.length} tours, ${users.length} users, ${bookings.length} bookings`);
+}
+
+// Always ensure the admin account exists (idempotent)
+async function ensureAdminAccount(pool) {
+  const { rows } = await pool.query(`SELECT id FROM users WHERE lower(email) = 'admin@goready.vn'`);
+  if (rows.length > 0) return;
+
+  // Import bcrypt dynamically to avoid top-level issues
+  const { default: bcrypt } = await import('bcrypt');
+  const hash = await bcrypt.hash('GoReady@2025!', 10);
+  const { randomUUID } = await import('node:crypto');
+
+  await pool.query(
+    `INSERT INTO users (id, name, email, phone, "joinedAt", "totalBookings", status, password_hash, role)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+    [
+      `usr-${randomUUID()}`,
+      'Quản trị viên',
+      'admin@goready.vn',
+      '',
+      new Date().toISOString().slice(0, 10),
+      0,
+      'active',
+      hash,
+      'admin',
+    ]
+  );
+  console.log('Admin account created: admin@goready.vn / GoReady@2025!');
 }

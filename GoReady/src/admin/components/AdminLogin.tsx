@@ -1,19 +1,33 @@
 import React from 'react';
 
 interface AdminLoginProps {
-  onLogin: (name: string) => void;
+  onLogin: (email: string, password: string) => Promise<void>;
 }
 
 const USER_SITE_URL = '/';
 
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
-  const [email, setEmail] = React.useState('admin@goready.vn');
+  const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const name = email.split('@')[0] || 'Admin';
-    onLogin(name);
+    setLoading(true);
+    setError('');
+    try {
+      await onLogin(email.trim(), password);
+    } catch (err) {
+      const status = (err as Error & { status?: number }).status;
+      const message = (err as Error).message;
+      if (message === 'not_admin') setError('Tài khoản này không có quyền truy cập trang quản trị.');
+      else if (status === 401) setError('Email hoặc mật khẩu không đúng.');
+      else if (status === 403) setError('Tài khoản đã bị khoá. Vui lòng liên hệ hỗ trợ.');
+      else setError('Không thể kết nối máy chủ. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -30,16 +44,24 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
         </div>
 
         <h1 className="mt-6 font-heading text-xl font-bold text-slate-900">Đăng nhập quản trị</h1>
-        <p className="mt-1 text-sm text-slate-500">Dành cho đội ngũ vận hành GoReady. Đây là bản demo, không cần tài khoản thật.</p>
+        <p className="mt-1 text-sm text-slate-500">Dành cho đội ngũ vận hành GoReady. Chỉ tài khoản có quyền admin mới truy cập được.</p>
 
-        <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
+        {error && (
+          <div className="mt-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100 animate-fadeIn">
+            <span>⚠️</span>
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-4">
           <label className="flex flex-col gap-1">
             <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">Email quản trị</span>
             <input
               type="email"
               required
+              autoFocus
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setError(''); }}
               className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-primary"
               placeholder="admin@goready.vn"
             />
@@ -50,16 +72,17 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
               type="password"
               required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); setError(''); }}
               className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm text-slate-800 outline-none focus:border-primary"
               placeholder="••••••••"
             />
           </label>
           <button
             type="submit"
-            className="mt-1 rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-card transition hover:bg-primary-600"
+            disabled={loading}
+            className="mt-1 rounded-xl bg-primary py-3 text-sm font-bold text-white shadow-card transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Đăng nhập
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
 

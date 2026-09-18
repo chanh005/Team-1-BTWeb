@@ -1,11 +1,14 @@
 import React from 'react';
-import type { Tour } from '../types';
+import type { Tour, UserReview, AccountUser } from '../types';
 import { discountPercent, formatVND } from '../utils/format';
 import InteractiveMap from './InteractiveMap';
 
 interface TourDetailModalProps {
   tour: Tour;
   isSaved: boolean;
+  currentUser: AccountUser | null;
+  userReviews: UserReview[];
+  onAddReview: (review: Omit<UserReview, 'id' | 'date' | 'authorEmail'>) => void;
   onClose: () => void;
   onToggleSave: (tourId: string) => void;
   onBook: (tour: Tour) => void;
@@ -13,11 +16,28 @@ interface TourDetailModalProps {
 
 type Tab = 'itinerary' | 'map' | 'services' | 'reviews';
 
-const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, onClose, onToggleSave, onBook }) => {
+const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, currentUser, userReviews, onAddReview, onClose, onToggleSave, onBook }) => {
   const [activeImage, setActiveImage] = React.useState(0);
   const [tab, setTab] = React.useState<Tab>('itinerary');
+  const [reviewRating, setReviewRating] = React.useState(5);
+  const [reviewContent, setReviewContent] = React.useState('');
+  
   const images = [tour.coverImage, ...tour.gallery];
   const pct = discountPercent(tour.price, tour.discountPrice);
+
+  const currentTourUserReviews = React.useMemo(() => userReviews.filter(r => r.tourId === tour.id), [userReviews, tour.id]);
+  const hasReviewed = React.useMemo(() => currentUser && currentTourUserReviews.some(r => r.authorEmail === currentUser.email.toLowerCase()), [currentUser, currentTourUserReviews]);
+
+  const handleSubmitReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reviewContent.trim()) return;
+    onAddReview({
+      tourId: tour.id,
+      rating: reviewRating,
+      content: reviewContent,
+    });
+    setReviewContent('');
+  };
 
   React.useEffect(() => {
     document.body.style.overflow = 'hidden';
@@ -172,20 +192,84 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, onClos
               )}
 
               {tab === 'reviews' && (
-                <div className="space-y-4">
-                  {tour.reviews.map((r) => (
-                    <div key={r.id} className="flex gap-3 rounded-xl border border-slate-100 p-3">
-                      <img src={r.avatar} alt={r.author} className="h-10 w-10 shrink-0 rounded-full bg-slate-100" />
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-800">{r.author}</span>
-                          <span className="text-xs text-amber-500">{'★'.repeat(r.rating)}</span>
+                <div className="space-y-6">
+                  {/* Review Form */}
+                  {currentUser && !hasReviewed && (
+                    <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-5">
+                      <h4 className="mb-3 font-bold text-slate-800">Viết đánh giá của bạn</h4>
+                      <form onSubmit={handleSubmitReview} className="flex flex-col gap-3">
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setReviewRating(star)}
+                              className={`text-xl transition ${star <= reviewRating ? 'text-amber-400' : 'text-slate-300 hover:text-amber-200'}`}
+                            >
+                              ★
+                            </button>
+                          ))}
                         </div>
-                        <p className="text-xs text-slate-400">{new Date(r.date).toLocaleDateString('vi-VN')}</p>
-                        <p className="mt-1 text-sm text-slate-600">{r.comment}</p>
-                      </div>
+                        <textarea
+                          placeholder="Chia sẻ trải nghiệm của bạn về tour này..."
+                          value={reviewContent}
+                          onChange={(e) => setReviewContent(e.target.value)}
+                          className="min-h-[80px] w-full rounded-xl border border-slate-200 p-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          required
+                        />
+                        <button type="submit" className="self-end rounded-lg bg-primary px-5 py-2 text-sm font-bold text-white transition hover:bg-primary-600">
+                          Gửi đánh giá
+                        </button>
+                      </form>
                     </div>
-                  ))}
+                  )}
+
+                  {currentTourUserReviews.length === 0 && tour.reviews.length === 0 ? (
+                    <p className="text-sm text-slate-500 italic">Chưa có đánh giá nào cho tour này.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {/* User's own reviews first */}
+                      {currentTourUserReviews.map((r) => {
+                        const isMine = currentUser && r.authorEmail === currentUser.email.toLowerCase();
+                        return (
+                          <div key={r.id} className={`flex gap-3 rounded-xl border p-4 ${isMine ? 'border-primary/30 bg-primary/5' : 'border-slate-100'}`}>
+                            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary-100 text-sm font-bold text-primary-700">
+                              {r.authorEmail.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold text-slate-800">
+                                    {r.authorEmail.split('@')[0]} {isMine && <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-white">Của bạn</span>}
+                                  </span>
+                                  <span className="text-xs text-amber-500">{'★'.repeat(r.rating)}</span>
+                                </div>
+                                <span className="text-xs text-slate-400">{new Date(r.date).toLocaleDateString('vi-VN')}</span>
+                              </div>
+                              <p className="mt-1.5 text-sm text-slate-700">{r.content}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      {/* Mock reviews */}
+                      {tour.reviews.map((r) => (
+                        <div key={r.id} className="flex gap-3 rounded-xl border border-slate-100 p-4">
+                          <img src={r.avatar} alt={r.author} className="h-10 w-10 shrink-0 rounded-full bg-slate-100" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-slate-800">{r.author}</span>
+                                <span className="text-xs text-amber-500">{'★'.repeat(r.rating)}</span>
+                              </div>
+                              <span className="text-xs text-slate-400">{new Date(r.date).toLocaleDateString('vi-VN')}</span>
+                            </div>
+                            <p className="mt-1.5 text-sm text-slate-700">{r.comment}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

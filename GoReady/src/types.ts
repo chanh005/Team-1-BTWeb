@@ -35,6 +35,15 @@ export interface Review {
   comment: string;
 }
 
+export interface UserReview {
+  id: string;
+  tourId: string;
+  authorEmail: string;
+  rating: number;
+  date: string;
+  content: string;
+}
+
 export type TravelStyle =
   | 'Biển đảo nghỉ dưỡng'
   | 'Văn hóa & Lịch sử'
@@ -165,6 +174,8 @@ export interface AccountUser {
   joinedAt: string; // ISO date
   totalBookings: number;
   status: 'active' | 'locked';
+  role: 'user' | 'admin';
+  avatar?: string | null;
 }
 
 export interface AiPlannerResult {

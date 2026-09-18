@@ -11,7 +11,7 @@ import { usePolledResource } from '../hooks/usePolledResource';
 import type { BookingStatus, Tour } from '../types';
 
 function App() {
-  const [adminName, setAdminName] = useLocalStorage<string>('goready_admin_name', '');
+  const [adminEmail, setAdminEmail] = useLocalStorage<string>('goready_admin_email', '');
   const [page, setPage] = React.useState<AdminPage>('dashboard');
 
   const { data: toursData, refresh: refreshTours } = usePolledResource(api.getTours);
@@ -21,8 +21,32 @@ function App() {
   const bookings = bookingsData ?? [];
   const users = usersData ?? [];
 
-  if (!adminName) {
-    return <AdminLogin onLogin={setAdminName} />;
+  const adminUser = adminEmail ? users.find((u) => u.email.toLowerCase() === adminEmail.toLowerCase()) ?? null : null;
+
+  // If the signed-in account loses admin rights or gets locked (picked up on the next poll), sign them out.
+  React.useEffect(() => {
+    if (!adminEmail || usersData === null) return; // not logged in, or account list hasn't loaded yet
+    if (!adminUser || adminUser.role !== 'admin' || adminUser.status === 'locked') {
+      setAdminEmail('');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminUser, adminEmail, usersData]);
+
+  const handleAdminLogin = async (email: string, password: string) => {
+    const account = await api.login(email, password);
+    if (account.role !== 'admin') {
+      throw new Error('not_admin');
+    }
+    setAdminEmail(account.email);
+  };
+
+  if (!adminEmail) {
+    return <AdminLogin onLogin={handleAdminLogin} />;
+  }
+
+  // Logged in but the shared account list hasn't loaded/re-validated yet — avoid flashing the login form.
+  if (!adminUser) {
+    return <div className="grid min-h-screen place-items-center bg-surface text-sm text-slate-400">Đang tải...</div>;
   }
 
   const handleAddTour = async (tour: Tour) => {
@@ -53,7 +77,7 @@ function App() {
   };
 
   return (
-    <AdminLayout page={page} onNavigate={setPage} adminName={adminName} onLogout={() => setAdminName('')}>
+    <AdminLayout page={page} onNavigate={setPage} adminName={adminUser.name} onLogout={() => setAdminEmail('')}>
       {page === 'dashboard' && <Dashboard tours={tours} bookings={bookings} users={users} />}
       {page === 'tours' && (
         <TourManagement tours={tours} onAdd={handleAddTour} onUpdate={handleUpdateTour} onDelete={handleDeleteTour} onToggleHidden={handleToggleHidden} />

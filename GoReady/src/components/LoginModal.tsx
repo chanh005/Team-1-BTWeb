@@ -152,19 +152,6 @@ const LoginModal: React.FC<LoginModalProps> = ({ onClose, onLogin, onRegister })
 
         {/* ── Form body ────────────────────────────────────────────────────── */}
         <div className="px-8 py-6">
-          {/* Admin hint */}
-          {tab === 'login' && (
-            <div className="mb-4 flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-700 border border-amber-100">
-              <span className="mt-0.5 shrink-0 text-sm">🛡️</span>
-              <p>
-                <span className="font-bold">Tài khoản Admin:</span>{' '}
-                <code className="rounded bg-amber-100 px-1 py-0.5">admin@goready.vn</code>{' '}
-                /{' '}
-                <code className="rounded bg-amber-100 px-1 py-0.5">GoReady@2025!</code>
-              </p>
-            </div>
-          )}
-
           {/* Error banner */}
           {error && (
             <div className="mb-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100 animate-fadeIn">

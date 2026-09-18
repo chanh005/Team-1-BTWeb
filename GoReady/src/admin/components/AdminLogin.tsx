@@ -46,16 +46,6 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
         <h1 className="mt-6 font-heading text-xl font-bold text-slate-900">Đăng nhập quản trị</h1>
         <p className="mt-1 text-sm text-slate-500">Dành cho đội ngũ vận hành GoReady. Chỉ tài khoản có quyền admin mới truy cập được.</p>
 
-        <div className="mt-4 flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-700 border border-amber-100">
-          <span className="mt-0.5 shrink-0 text-sm">🛡️</span>
-          <p>
-            <span className="font-bold">Tài khoản Admin:</span>{' '}
-            <code className="rounded bg-amber-100 px-1 py-0.5">admin@goready.vn</code>{' '}
-            /{' '}
-            <code className="rounded bg-amber-100 px-1 py-0.5">GoReady@2025!</code>
-          </p>
-        </div>
-
         {error && (
           <div className="mt-4 flex items-center gap-2 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100 animate-fadeIn">
             <span>⚠️</span>

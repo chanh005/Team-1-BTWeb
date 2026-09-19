@@ -3,8 +3,9 @@ import React from 'react';
 /**
  * Site routes (hash-based, no server config needed):
  *
- *   #/            Trang chủ — Khám phá Tour (Hero, "Gợi ý chuyến đi", bộ lọc, danh sách tour)
- *   #/tour/:id    Trang chi tiết Tour, mở chồng lên Trang chủ (id = mã tour, vd. SP01, hoặc id tour nội bộ)
+ *   #/            Trang chủ (Hero, Tour nổi bật, Điểm đến nổi bật)
+ *   #/explore     Khám phá Tour, xem hooks/useExploreRoute.ts
+ *   #/tour/:id    Trang chi tiết Tour, mở chồng lên trang đang xem (id = mã tour, vd. SP01, hoặc id tour nội bộ)
  *
  * "Chuyến đi của tôi" vẫn chuyển bằng state của Navbar. Mọi thẻ tour (Gợi ý chuyến đi,
  * danh sách, đã lưu/so sánh) đều mở chi tiết qua cùng một route nên link chia sẻ và nút Back đều hoạt động.
@@ -59,5 +60,13 @@ export function useTourRoute() {
     setTourId(null);
   }, []);
 
-  return { tourId, openTour, closeTour };
+  // Leaves the tour without popping history (used when the app itself navigates elsewhere, e.g. the navbar), so the
+  // page underneath is never restored on top of the view the visitor just chose
+  const dismissTour = React.useCallback(() => {
+    pushedByApp.current = false;
+    window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    setTourId(null);
+  }, []);
+
+  return { tourId, openTour, closeTour, dismissTour };
 }

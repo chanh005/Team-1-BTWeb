@@ -90,6 +90,7 @@ export interface Tour {
   cancellationPolicy: string;
   route: Coordinate[]; // full trip route (all days)
   hidden?: boolean; // admin-only: ẩn tour khỏi trang người dùng
+  isFeatured?: boolean; // admin-only: đánh dấu "Tour nổi bật" trên trang chủ
 
   // Optional fields, populated for tours loaded from the "Gợi ý chuyến đi" sheet
   code?: string; // sheet code, e.g. "SP01"

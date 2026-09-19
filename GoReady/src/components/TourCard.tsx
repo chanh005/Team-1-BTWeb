@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Tour } from '../types';
 import { discountPercent, formatVND } from '../utils/format';
+import { onImageError } from '../utils/image';
 
 interface TourCardProps {
   tour: Tour;
@@ -23,6 +24,7 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
           src={tour.coverImage}
           alt={tour.name}
           loading="lazy"
+          onError={onImageError}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
         />
         <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
@@ -30,9 +32,11 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
             {pct > 0 && (
               <span className="w-max rounded-full bg-cream px-2.5 py-1 text-[11px] font-bold text-primary-800 shadow">-{pct}%</span>
             )}
-            <span className="w-max rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow">
-              {'★'.repeat(tour.hotelStars)} khách sạn
-            </span>
+            {tour.hotelStars > 0 && (
+              <span className="w-max rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow">
+                {'★'.repeat(tour.hotelStars)} khách sạn
+              </span>
+            )}
           </div>
           <button
             onClick={(e) => {
@@ -59,9 +63,15 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
         <p className="line-clamp-2 text-xs text-slate-500">{tour.shortDescription}</p>
 
         <div className="flex items-center gap-2 text-xs text-slate-500">
-          <span className="flex items-center gap-1 font-semibold text-amber-500">★ {tour.rating.toFixed(1)}</span>
-          <span>({tour.reviewCount} đánh giá)</span>
-          <span className="ml-auto">{tour.bookingCount.toLocaleString('vi-VN')} đã đặt</span>
+          {tour.rating > 0 ? (
+            <>
+              <span className="flex items-center gap-1 font-semibold text-amber-500">★ {tour.rating.toFixed(1)}</span>
+              <span>({tour.reviewCount} đánh giá)</span>
+            </>
+          ) : (
+            <span>Chưa có đánh giá</span>
+          )}
+          {tour.bookingCount > 0 && <span className="ml-auto">{tour.bookingCount.toLocaleString('vi-VN')} đã đặt</span>}
         </div>
 
         <div className="flex flex-wrap gap-1.5">

@@ -37,6 +37,7 @@ const CREATE_SQL = `
     "cancellationPolicy" TEXT,
     route JSONB,
     hidden BOOLEAN DEFAULT FALSE,
+    "isFeatured" BOOLEAN NOT NULL DEFAULT FALSE,
     code TEXT,
     "durationLabel" TEXT,
     "childPrice" INTEGER,
@@ -100,6 +101,8 @@ export async function ensureSchema(pool) {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`);
   await pool.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS "departureCode" TEXT`);
+  // Admin-flagged "Tour nổi bật" (home page); existing tours default to not featured
+  await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS "isFeatured" BOOLEAN NOT NULL DEFAULT FALSE`);
   // Fields of tours imported from the Google Sheet ("Gợi ý chuyến đi"); "code" (MÃ, e.g. SP01) is their natural key
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS code TEXT`);
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS "durationLabel" TEXT`);

@@ -1,31 +1,29 @@
 import React from 'react';
 import type { Tour } from '../types';
+import { groupDestinations, type DestinationGroup } from '../utils/destinations';
+import { onImageError } from '../utils/image';
 
 interface FeaturedDestinationsProps {
-  tours: Tour[];
+  /** Tour đang hiện và được admin đánh dấu nổi bật: nguồn duy nhất của mục này. */
+  featuredTours: Tour[];
+  /** Mọi tour đang hiện, để đếm đúng số tour người dùng sẽ thấy sau khi bấm vào một điểm đến. */
+  allTours: Tour[];
   onSelectDestination: (destination: string) => void;
 }
 
-const FEATURED_DESTINATION_NAMES = [
-  'Phú Quốc',
-  'Đà Nẵng - Hội An',
-  'Sa Pa',
-  'Hà Giang Loop',
-  'Nha Trang',
-  'Đà Lạt',
-  'Quy Nhơn',
-  'Tokyo',
-];
+const FeaturedDestinations: React.FC<FeaturedDestinationsProps> = ({ featuredTours, allTours, onSelectDestination }) => {
+  // Điểm đến của các tour nổi bật, loại trùng (kể cả biến thể "Hà Giang" / "Hà Giang Loop"), mỗi điểm đến một thẻ
+  const destinations = React.useMemo(() => {
+    const groupOf = new Map<string, DestinationGroup>();
+    for (const group of groupDestinations(allTours)) for (const tour of group.tours) groupOf.set(tour.id, group);
 
-const FeaturedDestinations: React.FC<FeaturedDestinationsProps> = ({ tours, onSelectDestination }) => {
-  const destinations = React.useMemo(
-    () =>
-      FEATURED_DESTINATION_NAMES.map((name) => {
-        const matches = tours.filter((t) => t.destination === name);
-        return { name, count: matches.length, image: matches[0]?.coverImage };
-      }).filter((d) => d.image),
-    [tours]
-  );
+    const found = new Map<string, { group: DestinationGroup; image: string }>();
+    for (const tour of featuredTours) {
+      const group = groupOf.get(tour.id);
+      if (group && !found.has(group.key)) found.set(group.key, { group, image: tour.coverImage });
+    }
+    return [...found.values()].map(({ group, image }) => ({ name: group.label, count: group.count, image }));
+  }, [featuredTours, allTours]);
 
   if (destinations.length === 0) return null;
 
@@ -46,6 +44,7 @@ const FeaturedDestinations: React.FC<FeaturedDestinationsProps> = ({ tours, onSe
                 src={d.image}
                 alt={d.name}
                 loading="lazy"
+                onError={onImageError}
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />

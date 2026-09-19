@@ -66,7 +66,7 @@ export interface Tour {
   duration: number; // days
   nights: number;
   departure: string;
-  hotelStars: 3 | 4 | 5;
+  hotelStars: 0 | 3 | 4 | 5; // 0 = no star-rated hotel in the package
   transport: string;
   styleTags: TravelStyle[];
   groupSizeTags: GroupSizeTag[];
@@ -80,6 +80,13 @@ export interface Tour {
   highlights: string[];
   cancellationPolicy: string;
   route: Coordinate[]; // full trip route (all days)
+
+  // Optional fields, populated for tours loaded from the "Gợi ý chuyến đi" sheet
+  code?: string; // sheet code, e.g. "SP01"
+  durationLabel?: string; // raw duration text, e.g. "1 buổi (17:00 - 21:00)"
+  childPrice?: number; // VND
+  category?: string; // e.g. "Tour Miền Bắc"
+  keywords?: string[];
 }
 
 export interface AddOnService {

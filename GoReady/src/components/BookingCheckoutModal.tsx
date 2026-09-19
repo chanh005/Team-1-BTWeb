@@ -55,7 +55,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClo
   }, [step, paymentMethod, countdown]);
 
   const adultPrice = tour.discountPrice ?? tour.price;
-  const childPrice = Math.round(adultPrice * 0.7);
+  const childPrice = tour.childPrice ?? Math.round(adultPrice * 0.7);
   const addOnsTotal = selectedAddOns.reduce((sum, id) => sum + (ADD_ONS.find((a) => a.id === id)?.price ?? 0), 0);
   const subtotal = adults * adultPrice + children * childPrice;
   const total = subtotal + addOnsTotal;

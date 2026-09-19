@@ -26,6 +26,9 @@ const Footer: React.FC = () => (
         <ul className="space-y-2 text-sm text-slate-500">
           <li>Hotline 24/7: 1900 1080</li>
           <li>Trung tâm trợ giúp</li>
+          <li>Câu hỏi thường gặp (FAQ)</li>
+          <li>Liên hệ</li>
+          <li>Chính sách</li>
           <li>Chính sách hoàn hủy</li>
           <li>Điều khoản dịch vụ</li>
         </ul>
@@ -43,6 +46,10 @@ const Footer: React.FC = () => (
     </div>
     <div className="border-t border-slate-100 py-4 text-center text-xs text-slate-400">
       © {new Date().getFullYear()} GoReady. Trải nghiệm du lịch thông minh & trọn vẹn.
+      {' · '}
+      <a href="/admin/" className="font-semibold text-slate-400 hover:text-primary">
+        Đăng nhập trang quản trị
+      </a>
     </div>
   </footer>
 );

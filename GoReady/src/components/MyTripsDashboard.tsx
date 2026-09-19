@@ -8,8 +8,17 @@ interface MyTripsDashboardProps {
   checklist: ChecklistItem[];
   onToggleChecklist: (id: string) => void;
   onAddChecklistItem: (category: ChecklistCategory, label: string) => void;
+  onCancelBooking: (bookingId: string) => Promise<void>;
   aiPlans: AiPlannerResult[];
 }
+
+// Mirrors the tiers described in "Chính sách hoàn hủy".
+const refundPercentFor = (daysUntilDeparture: number): number => {
+  if (daysUntilDeparture >= 30) return 90;
+  if (daysUntilDeparture >= 15) return 50;
+  if (daysUntilDeparture >= 7) return 30;
+  return 0;
+};
 
 const CATEGORIES: ChecklistCategory[] = ['Giấy tờ tùy thân', 'Quần áo & Giày dép', 'Thuốc men & Y tế', 'Thiết bị điện tử & Tiền tệ'];
 
@@ -34,11 +43,12 @@ const CountdownBlock: React.FC<{ value: number; label: string }> = ({ value, lab
   </div>
 );
 
-const UpcomingCard: React.FC<{ booking: Booking; tour?: Tour }> = ({ booking, tour }) => {
+const UpcomingCard: React.FC<{ booking: Booking; tour?: Tour; onRequestCancel: (booking: Booking) => void }> = ({ booking, tour, onRequestCancel }) => {
   const cd = useCountdown(booking.departureDate);
+  const cancelled = booking.status === 'cancelled';
   return (
-    <div className="overflow-hidden rounded-2xl border border-slate-100 shadow-soft">
-      <div className="relative bg-gradient-to-br from-primary-600 to-primary-500 p-5 text-white">
+    <div className={`overflow-hidden rounded-2xl border shadow-soft ${cancelled ? 'border-slate-200 opacity-70' : 'border-slate-100'}`}>
+      <div className={`relative p-5 text-white ${cancelled ? 'bg-slate-400' : 'bg-gradient-to-br from-primary-600 to-primary-500'}`}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs text-white/80">Mã booking {booking.bookingCode}</p>
@@ -48,7 +58,9 @@ const UpcomingCard: React.FC<{ booking: Booking; tour?: Tour }> = ({ booking, to
           {tour && <img src={tour.coverImage} alt={tour.name} className="h-16 w-16 shrink-0 rounded-xl object-cover" />}
         </div>
         <div className="mt-4 flex gap-2">
-          {cd.expired ? (
+          {cancelled ? (
+            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">❌ Đã hủy tour</span>
+          ) : cd.expired ? (
             <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">Chúc bạn lên đường vui vẻ! 🎉</span>
           ) : (
             <>
@@ -66,18 +78,91 @@ const UpcomingCard: React.FC<{ booking: Booking; tour?: Tour }> = ({ booking, to
         <div><p className="text-slate-400">Khách sạn</p><p className="font-semibold text-slate-700">{booking.hotelName}</p></div>
         <div><p className="text-slate-400">HDV / Hotline 24/7</p><p className="font-semibold text-slate-700">{booking.guideName} — {booking.guidePhone}</p></div>
       </div>
+      {!cancelled && !cd.expired && (
+        <div className="border-t border-slate-100 p-3">
+          <button
+            onClick={() => onRequestCancel(booking)}
+            className="w-full rounded-xl border border-red-200 py-2 text-xs font-bold text-red-500 transition hover:bg-red-50"
+          >
+            Hủy tour & yêu cầu hoàn tiền
+          </button>
+        </div>
+      )}
     </div>
   );
 };
 
-const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, checklist, onToggleChecklist, onAddChecklistItem, aiPlans }) => {
+const CancelBookingModal: React.FC<{
+  booking: Booking;
+  tourName: string;
+  onClose: () => void;
+  onConfirm: () => Promise<void>;
+}> = ({ booking, tourName, onClose, onConfirm }) => {
+  const [submitting, setSubmitting] = React.useState(false);
+  const daysUntilDeparture = Math.floor((new Date(booking.departureDate).getTime() - Date.now()) / 86400000);
+  const percent = refundPercentFor(daysUntilDeparture);
+  const refundAmount = Math.round((booking.totalPrice * percent) / 100);
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      await onConfirm();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-slate-900/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-2xl animate-scaleIn">
+        <h3 className="text-lg font-bold text-slate-800">Hủy tour "{tourName}"?</h3>
+        <p className="mt-1 text-sm text-slate-500">Mã booking {booking.bookingCode} · còn {Math.max(daysUntilDeparture, 0)} ngày tới ngày khởi hành.</p>
+
+        <div className="mt-4 rounded-xl bg-slate-50 p-4">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-slate-500">Mức hoàn tiền</span>
+            <span className="font-bold text-slate-800">{percent}%</span>
+          </div>
+          <div className="mt-1 flex items-center justify-between text-sm">
+            <span className="text-slate-500">Số tiền hoàn dự kiến</span>
+            <span className="font-bold text-primary">{formatVND(refundAmount)}</span>
+          </div>
+          <p className="mt-2 text-xs text-slate-400">Theo Chính sách hoàn hủy: ≥30 ngày hoàn 90%, 15–29 ngày hoàn 50%, 7–14 ngày hoàn 30%, dưới 7 ngày không hoàn tiền. Tiền hoàn sẽ được xử lý trong 7–14 ngày làm việc.</p>
+        </div>
+
+        <div className="mt-5 flex gap-2">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="flex-1 rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            Đóng
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={submitting}
+            className="flex-1 rounded-xl bg-red-500 py-2.5 text-sm font-bold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {submitting ? 'Đang xử lý...' : 'Xác nhận hủy'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, checklist, onToggleChecklist, onAddChecklistItem, onCancelBooking, aiPlans }) => {
   const [tab, setTab] = React.useState<'upcoming' | 'checklist' | 'past' | 'ai'>('upcoming');
   const [newItemLabel, setNewItemLabel] = React.useState('');
   const [newItemCategory, setNewItemCategory] = React.useState<ChecklistCategory>('Giấy tờ tùy thân');
+  const [cancelTarget, setCancelTarget] = React.useState<Booking | null>(null);
 
   const now = Date.now();
-  const upcoming = bookings.filter((b) => new Date(b.departureDate).getTime() >= now).sort((a, b) => a.departureDate.localeCompare(b.departureDate));
-  const past = bookings.filter((b) => new Date(b.departureDate).getTime() < now);
+  const isFuture = (b: Booking) => new Date(b.departureDate).getTime() >= now;
+  const activeUpcoming = bookings.filter((b) => b.status !== 'cancelled' && isFuture(b)).sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+  const cancelledUpcoming = bookings.filter((b) => b.status === 'cancelled' && isFuture(b)).sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+  const upcoming = [...activeUpcoming, ...cancelledUpcoming];
+  const past = bookings.filter((b) => b.status !== 'cancelled' && !isFuture(b));
 
   const tourFor = (id: string) => tours.find((t) => t.id === id);
   const checkedCount = checklist.filter((c) => c.checked).length;
@@ -89,7 +174,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
 
       <div className="mt-5 flex gap-1 overflow-x-auto rounded-full bg-slate-100 p-1 text-sm font-semibold no-scrollbar">
         {([
-          ['upcoming', `Sắp tới (${upcoming.length})`],
+          ['upcoming', `Sắp tới (${activeUpcoming.length})`],
           ['checklist', `Hành lý (${checkedCount}/${checklist.length})`],
           ['past', `Đã hoàn thành (${past.length})`],
           ['ai', `Kế hoạch AI (${aiPlans.length})`],
@@ -111,7 +196,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
           ) : (
             <div className="grid gap-5 lg:grid-cols-2">
               {upcoming.map((b) => (
-                <UpcomingCard key={b.id} booking={b} tour={tourFor(b.tourId)} />
+                <UpcomingCard key={b.id} booking={b} tour={tourFor(b.tourId)} onRequestCancel={setCancelTarget} />
               ))}
             </div>
           ))}
@@ -205,6 +290,18 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
             </div>
           ))}
       </div>
+
+      {cancelTarget && (
+        <CancelBookingModal
+          booking={cancelTarget}
+          tourName={tourFor(cancelTarget.tourId)?.name ?? 'Chuyến đi'}
+          onClose={() => setCancelTarget(null)}
+          onConfirm={async () => {
+            await onCancelBooking(cancelTarget.id);
+            setCancelTarget(null);
+          }}
+        />
+      )}
     </div>
   );
 };

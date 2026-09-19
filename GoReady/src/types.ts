@@ -35,6 +35,15 @@ export interface Review {
   comment: string;
 }
 
+export interface UserReview {
+  id: string;
+  tourId: string;
+  authorEmail: string;
+  rating: number;
+  date: string;
+  content: string;
+}
+
 export type TravelStyle =
   | 'Biển đảo nghỉ dưỡng'
   | 'Văn hóa & Lịch sử'
@@ -80,6 +89,7 @@ export interface Tour {
   highlights: string[];
   cancellationPolicy: string;
   route: Coordinate[]; // full trip route (all days)
+  hidden?: boolean; // admin-only: ẩn tour khỏi trang người dùng
 
   // Optional fields, populated for tours loaded from the "Gợi ý chuyến đi" sheet
   code?: string; // sheet code, e.g. "SP01"
@@ -199,6 +209,18 @@ export interface AiPlannerDayPlan {
 export interface AiPlannerCostItem {
   label: string;
   amount: number;
+}
+
+export interface AccountUser {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  joinedAt: string; // ISO date
+  totalBookings: number;
+  status: 'active' | 'locked';
+  role: 'user' | 'admin';
+  avatar?: string | null;
 }
 
 export interface AiPlannerResult {

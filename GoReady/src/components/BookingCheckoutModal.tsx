@@ -9,6 +9,8 @@ interface BookingCheckoutModalProps {
   initialDepartureId?: string;
   onClose: () => void;
   onConfirm: (booking: Booking) => void;
+  defaultName?: string;
+  defaultEmail?: string;
 }
 
 const ADD_ONS: AddOnService[] = [
@@ -40,7 +42,7 @@ const legSummary = (d: Departure) => {
   return `🚌 ${leg.operator} · ${leg.departTime} → ${leg.arriveTime}`;
 };
 
-const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initialDepartureId = '', onClose, onConfirm }) => {
+const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initialDepartureId = '', onClose, onConfirm, defaultName = '', defaultEmail = '' }) => {
   const [step, setStep] = React.useState<Step>('form');
   // Tours from "Gợi ý chuyến đi" run on fixed group departures; other tours let the visitor pick any date
   const departures = React.useMemo(() => (tour.code ? buildDepartures(tour) : []), [tour]);
@@ -53,9 +55,9 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
   const [adults, setAdults] = React.useState(2);
   const [children, setChildren] = React.useState(0);
   const [infants, setInfants] = React.useState(0);
-  const [contactName, setContactName] = React.useState('');
+  const [contactName, setContactName] = React.useState(defaultName);
   const [contactPhone, setContactPhone] = React.useState('');
-  const [contactEmail, setContactEmail] = React.useState('');
+  const [contactEmail, setContactEmail] = React.useState(defaultEmail);
   const [note, setNote] = React.useState('');
   const [selectedAddOns, setSelectedAddOns] = React.useState<string[]>([]);
   const [paymentMethod, setPaymentMethod] = React.useState<PaymentMethod>('vietqr');

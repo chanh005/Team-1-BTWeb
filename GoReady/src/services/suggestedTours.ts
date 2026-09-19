@@ -3,14 +3,21 @@ import { parseCsv } from '../utils/csv';
 import { placeholderImage } from '../utils/image';
 
 // ---------------------------------------------------------------------------
-// Data source
-//   1. VITE_SUGGESTED_TOURS_URL — a Google Sheets link (edit/share link or a
+// Data source (tried in this order, first one with valid tours wins)
+//   1. /api/suggested-tours — the backend (Postgres on Neon).
+//   2. VITE_SUGGESTED_TOURS_URL — a Google Sheets link (edit/share link or a
 //      "Publish to web" CSV link). Must be shared as "anyone with the link".
-//   2. /data/suggested-tours.csv — bundled fallback, used when (1) is unset or fails.
+//   3. /data/suggested-tours.csv — bundled fallback.
+//
+// This module is also imported by the backend seed script (plain Node, no Vite),
+// where `import.meta.env` does not exist — hence the `?? {}` guard.
 // ---------------------------------------------------------------------------
-const REMOTE_SOURCE = import.meta.env.VITE_SUGGESTED_TOURS_URL?.trim();
-const LOCAL_SOURCE = `${import.meta.env.BASE_URL}data/suggested-tours.csv`;
-const IMAGE_BASE = import.meta.env.VITE_TOUR_IMAGE_BASE ?? `${import.meta.env.BASE_URL}images/tours/`;
+const env: Partial<ImportMetaEnv> = import.meta.env ?? {};
+const BASE_URL = env.BASE_URL ?? '/';
+const REMOTE_SOURCE = env.VITE_SUGGESTED_TOURS_URL?.trim();
+const LOCAL_SOURCE = `${BASE_URL}data/suggested-tours.csv`;
+const API_SOURCE = `${env.VITE_API_BASE ?? ''}/api/suggested-tours`;
+const IMAGE_BASE = env.VITE_TOUR_IMAGE_BASE ?? `${BASE_URL}images/tours/`;
 
 /** Turns a Google Sheets edit/share link into its CSV export URL; other URLs pass through untouched. */
 export const toCsvUrl = (source: string): string => {
@@ -34,21 +41,24 @@ const normalize = (s: string) =>
     .replace(/[^a-z0-9]/g, '');
 
 const COLUMNS = {
-  destination: 'diadiem',
-  code: 'ma',
-  name: 'tentour',
-  category: 'danhmuctour',
-  duration: 'thoigian',
-  transport: 'phuongtien',
-  adultPrice: 'gianguoilon',
-  childPrice: 'giatreem',
-  summary: 'motangan',
-  itinerary: 'lichtrinh',
-  includes: 'baogom',
-  excludes: 'khongbaogom',
-  keywords: 'tukhoa',
-  terms: 'dieukhoan',
-  images: 'anhtour',
+  destination: ['diadiem'],
+  code: ['ma'],
+  name: ['tentour'],
+  category: ['danhmuctour'],
+  duration: ['thoigian'],
+  transport: ['phuongtien'],
+  adultPrice: ['gianguoilon'],
+  childPrice: ['giatreem'],
+  summary: ['motangan'],
+  itinerary: ['lichtrinh'],
+  includes: ['baogom'],
+  excludes: ['khongbaogom'],
+  keywords: ['tukhoa'],
+  terms: ['dieukhoan'],
+  images: ['anhtour'],
+  // Optional: the current sheet has no rating columns, so these stay empty until they are added
+  rating: ['danhgia', 'danhgiasao', 'sao', 'rating'],
+  reviewCount: ['luotdanhgia', 'sodanhgia', 'soluotdanhgia', 'reviewcount'],
 } as const;
 
 type ColumnKey = keyof typeof COLUMNS;
@@ -57,10 +67,10 @@ const indexColumns = (header: string[]): Record<ColumnKey, number> => {
   const names = header.map(normalize);
   const result = {} as Record<ColumnKey, number>;
   (Object.keys(COLUMNS) as ColumnKey[]).forEach((key) => {
-    const alias = COLUMNS[key];
-    let idx = names.indexOf(alias);
+    const aliases: readonly string[] = COLUMNS[key];
+    let idx = names.findIndex((n) => aliases.includes(n));
     // The location header may carry a stray prefix (e.g. "t Địa điểm")
-    if (idx < 0 && key === 'destination') idx = names.findIndex((n) => n.endsWith(alias));
+    if (idx < 0 && key === 'destination') idx = names.findIndex((n) => n.endsWith(aliases[0]));
     result[key] = idx;
   });
   return result;
@@ -96,6 +106,15 @@ const parseVnd = (raw: string): number | undefined => {
   const n = Number(raw.replace(/\D/g, ''));
   return n > 0 ? n : undefined;
 };
+
+/** "4.8", "4,8", "4.8/5" → 4.8. Empty or out-of-range (not 0–5] → 0, meaning "no rating yet". */
+const parseRating = (raw: string): number => {
+  const n = Number(raw.replace(',', '.').match(/\d+(?:\.\d+)?/)?.[0]);
+  return n > 0 && n <= 5 ? n : 0;
+};
+
+/** "120" / "1.250 đánh giá" → number of reviews (0 when empty). */
+const parseCount = (raw: string): number => Number(raw.replace(/\D/g, '')) || 0;
 
 /** "2 ngày 1 đêm" / "1 ngày (08:00 - 16:30)" / "1 buổi (17:00 - 21:00)" */
 const parseDuration = (raw: string): { days: number; nights: number } => {
@@ -269,8 +288,8 @@ export const parseSuggestedTours = (csv: string): Tour[] => {
       transport: clean(cell(row, 'transport')),
       styleTags: [],
       groupSizeTags: [],
-      rating: 0,
-      reviewCount: 0,
+      rating: parseRating(cell(row, 'rating')),
+      reviewCount: parseCount(cell(row, 'reviewCount')),
       bookingCount: 0,
       itinerary: parseItinerary(cell(row, 'itinerary')),
       includes: parseList(includesRaw),
@@ -302,20 +321,33 @@ const fetchText = async (url: string, signal?: AbortSignal): Promise<string> => 
   return res.text();
 };
 
-/** Loads suggested tours from the configured Google Sheet, falling back to the bundled CSV. */
+/** Tours already parsed by the backend. A non-JSON reply (e.g. a static host's index.html) throws. */
+const fetchApiTours = async (signal?: AbortSignal): Promise<Tour[]> => {
+  const data: unknown = JSON.parse(await fetchText(API_SOURCE, signal));
+  if (!Array.isArray(data)) throw new Error('Phản hồi API không hợp lệ');
+  return data as Tour[];
+};
+
+/** Loads suggested tours: backend API first, then the configured Google Sheet, then the bundled CSV. */
 export const fetchSuggestedTours = async (signal?: AbortSignal): Promise<Tour[]> => {
-  const sources = [REMOTE_SOURCE ? toCsvUrl(REMOTE_SOURCE) : '', LOCAL_SOURCE].filter(Boolean);
+  const sources: { label: string; load: () => Promise<Tour[]> }[] = [
+    { label: API_SOURCE, load: () => fetchApiTours(signal) },
+    ...(REMOTE_SOURCE
+      ? [{ label: 'Google Sheets', load: async () => parseSuggestedTours(await fetchText(toCsvUrl(REMOTE_SOURCE), signal)) }]
+      : []),
+    { label: LOCAL_SOURCE, load: async () => parseSuggestedTours(await fetchText(LOCAL_SOURCE, signal)) },
+  ];
   let lastError: unknown = new Error('Chưa cấu hình nguồn dữ liệu tour gợi ý');
 
-  for (const url of sources) {
+  for (const { label, load } of sources) {
     try {
-      const tours = parseSuggestedTours(await fetchText(url, signal));
+      const tours = await load();
       if (tours.length > 0) return tours;
       lastError = new Error('Nguồn dữ liệu không có tour hợp lệ');
     } catch (err) {
       if (signal?.aborted) throw err;
       lastError = err;
-      console.warn(`[suggested-tours] Lỗi khi đọc ${url}`, err);
+      console.warn(`[suggested-tours] Lỗi khi đọc ${label}`, err);
     }
   }
   throw lastError;

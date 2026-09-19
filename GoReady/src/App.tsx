@@ -5,6 +5,7 @@ import FilterBar from './components/FilterBar';
 import SuggestedTours from './components/SuggestedTours';
 import TourList from './components/TourList';
 import TourDetailModal from './components/TourDetailModal';
+import TourDetailPage from './components/TourDetailPage';
 import SavedAndCompareModal from './components/SavedAndCompareModal';
 import AiItineraryModal from './components/AiItineraryModal';
 import BookingCheckoutModal from './components/BookingCheckoutModal';
@@ -42,6 +43,7 @@ function App() {
   const [aiPlans, setAiPlans] = useLocalStorage<AiPlannerResult[]>('goready_ai_plans', []);
 
   const [bookingTour, setBookingTour] = React.useState<Tour | null>(null);
+  const [bookingDepartureId, setBookingDepartureId] = React.useState('');
   const [showSaved, setShowSaved] = React.useState(false);
   const [showAi, setShowAi] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
@@ -68,6 +70,11 @@ function App() {
       closeTour();
     }
   }, [tourId, activeTour, suggestedStatus, closeTour]);
+
+  // Tours from the sheet (they carry a `code`) get the full detail page; built-in tours keep the modal (map, reviews)
+  const detailPage = activeTour?.code ? activeTour : null;
+  // #/tour/:id opened directly while the sheet is still loading: avoid flashing the home page
+  const tourLoading = Boolean(tourId && !activeTour && suggestedStatus === 'loading');
 
   const patchFilters = (patch: Partial<SearchFilterState>) => setFilters((f) => ({ ...f, ...patch }));
 
@@ -153,14 +160,30 @@ function App() {
     <div className="min-h-screen bg-surface font-body">
       <Navbar
         view={view}
-        onNavigate={setView}
+        onNavigate={(v) => {
+          if (tourId) closeTour();
+          setView(v);
+        }}
         savedCount={savedIds.length}
         compareCount={compareIds.length}
         onOpenSaved={() => setShowSaved(true)}
         onOpenAi={() => setShowAi(true)}
       />
 
-      {view === 'home' ? (
+      {detailPage ? (
+        <TourDetailPage
+          tour={detailPage}
+          isSaved={savedIds.includes(detailPage.id)}
+          onBack={closeTour}
+          onToggleSave={toggleSave}
+          onBook={(t, departure) => {
+            setBookingDepartureId(departure?.id ?? '');
+            setBookingTour(t);
+          }}
+        />
+      ) : tourLoading ? (
+        <div className="container-px mx-auto py-24 text-center text-sm text-slate-500">Đang tải thông tin tour…</div>
+      ) : view === 'home' ? (
         <>
           <HeroSearch filters={filters} onChange={patchFilters} tours={TOURS} onSearch={() => setAppliedDestination(filters.destination)} />
           <SuggestedTours tours={suggestedTours} status={suggestedStatus} onRetry={reloadSuggested} onOpenTour={(t) => openTour(t.id)} />
@@ -202,7 +225,7 @@ function App() {
 
       <Footer />
 
-      {activeTour && (
+      {activeTour && !detailPage && (
         <TourDetailModal
           tour={activeTour}
           isSaved={savedIds.includes(activeTour.id)}
@@ -210,6 +233,7 @@ function App() {
           onToggleSave={toggleSave}
           onBook={(t) => {
             closeTour();
+            setBookingDepartureId('');
             setBookingTour(t);
           }}
         />
@@ -228,6 +252,7 @@ function App() {
           }}
           onBook={(t) => {
             setShowSaved(false);
+            setBookingDepartureId('');
             setBookingTour(t);
           }}
         />
@@ -236,7 +261,7 @@ function App() {
       {showAi && <AiItineraryModal onClose={() => setShowAi(false)} onSavePlan={handleSaveAiPlan} />}
 
       {bookingTour && (
-        <BookingCheckoutModal tour={bookingTour} onClose={() => setBookingTour(null)} onConfirm={handleConfirmBooking} />
+        <BookingCheckoutModal tour={bookingTour} initialDepartureId={bookingDepartureId} onClose={() => setBookingTour(null)} onConfirm={handleConfirmBooking} />
       )}
 
       {toast && (

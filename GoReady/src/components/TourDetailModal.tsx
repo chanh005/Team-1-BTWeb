@@ -85,10 +85,12 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, onClos
                   <span>{tour.transport}</span>
                 </div>
                 <h2 className="mt-1 font-heading text-xl font-bold text-slate-900 sm:text-2xl">{tour.name}</h2>
-                {tour.reviewCount > 0 && (
+                {tour.rating > 0 && (
                   <div className="mt-1 flex items-center gap-2 text-sm">
                     <span className="font-semibold text-amber-500">★ {tour.rating.toFixed(1)}</span>
-                    <span className="text-slate-400">({tour.reviewCount} đánh giá · {tour.bookingCount.toLocaleString('vi-VN')} đã đặt)</span>
+                    {tour.reviewCount > 0 && (
+                      <span className="text-slate-400">({tour.reviewCount} đánh giá · {tour.bookingCount.toLocaleString('vi-VN')} đã đặt)</span>
+                    )}
                   </div>
                 )}
               </div>

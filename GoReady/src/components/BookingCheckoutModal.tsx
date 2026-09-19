@@ -1,9 +1,12 @@
 import React from 'react';
-import type { AddOnService, Booking, PaymentMethod, Tour } from '../types';
+import type { AddOnService, Booking, Departure, PaymentMethod, Tour } from '../types';
+import { buildDepartures, formatDMY, formatPillDate, getChildPolicy } from '../data/departures';
 import { formatVND, generateBookingCode, uid } from '../utils/format';
 
 interface BookingCheckoutModalProps {
   tour: Tour;
+  /** Group ("mã đoàn") the visitor already picked on the tour page. Only used by tours with fixed departures. */
+  initialDepartureId?: string;
   onClose: () => void;
   onConfirm: (booking: Booking) => void;
 }
@@ -20,9 +23,33 @@ type Step = 'form' | 'payment' | 'ticket';
 
 const qrImg = (data: string, size = 220) => `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(data)}`;
 
-const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClose, onConfirm }) => {
+/** "Điểm đón" / "Giờ đón" shown on the ticket, taken from the group's first leg when there is one. */
+const pickupOf = (tour: Tour, departure: Departure | null): Pick<Booking, 'pickupTime' | 'pickupLocation'> => {
+  const leg = departure?.legs[0];
+  if (!leg) return { pickupTime: '06:30', pickupLocation: `Văn phòng GoReady — ${tour.departure}` };
+  if (leg.kind === 'flight') return { pickupTime: leg.departTime, pickupLocation: `Sân bay ${leg.from} (${leg.fromCode}) — ${leg.operator} ${leg.code}` };
+  if (leg.kind === 'local') return { pickupTime: leg.departTime, pickupLocation: `Điểm hẹn tại ${leg.from}` };
+  return { pickupTime: leg.departTime, pickupLocation: `${leg.operator} — ${leg.from}` };
+};
+
+/** How the group gets there, e.g. "✈ Vietjet Air VJ770 · 08:05 → 09:55". */
+const legSummary = (d: Departure) => {
+  const leg = d.legs[0];
+  if (leg.kind === 'flight') return `✈ ${leg.operator} ${leg.code} · ${leg.departTime} → ${leg.arriveTime}`;
+  if (leg.kind === 'local') return `🚌 ${leg.operator} · xe đón lúc ${leg.departTime}`;
+  return `🚌 ${leg.operator} · ${leg.departTime} → ${leg.arriveTime}`;
+};
+
+const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initialDepartureId = '', onClose, onConfirm }) => {
   const [step, setStep] = React.useState<Step>('form');
-  const [departureDate, setDepartureDate] = React.useState('');
+  // Tours from "Gợi ý chuyến đi" run on fixed group departures; other tours let the visitor pick any date
+  const departures = React.useMemo(() => (tour.code ? buildDepartures(tour) : []), [tour]);
+  const [departureId, setDepartureId] = React.useState(
+    () => (departures.some((d) => d.id === initialDepartureId && d.seatsLeft > 0) ? initialDepartureId : departures.find((d) => d.seatsLeft > 0)?.id ?? ''),
+  );
+  const [freeDate, setFreeDate] = React.useState('');
+  const departure = departures.find((d) => d.id === departureId) ?? null;
+  const departureDate = departure?.date ?? freeDate;
   const [adults, setAdults] = React.useState(2);
   const [children, setChildren] = React.useState(0);
   const [infants, setInfants] = React.useState(0);
@@ -55,17 +82,41 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClo
   }, [step, paymentMethod, countdown]);
 
   const adultPrice = tour.discountPrice ?? tour.price;
-  const childPrice = tour.childPrice ?? Math.round(adultPrice * 0.7);
+  // Sheet tours have no child price when children are not accepted; built-in tours fall back to 70%
+  const childPrice = tour.code ? tour.childPrice : tour.childPrice ?? Math.round(adultPrice * 0.7);
+  const policy = tour.code ? getChildPolicy(tour) : null;
+  const seatsLeft = departure?.seatsLeft ?? Infinity;
+  const overSeats = adults + children > seatsLeft;
   const addOnsTotal = selectedAddOns.reduce((sum, id) => sum + (ADD_ONS.find((a) => a.id === id)?.price ?? 0), 0);
-  const subtotal = adults * adultPrice + children * childPrice;
+  const subtotal = adults * adultPrice + children * (childPrice ?? 0);
   const total = subtotal + addOnsTotal;
+
+  const guestRows = [
+    { key: 'adult', label: 'Người lớn', value: adults, set: setAdults, min: 1, priceLabel: formatVND(adultPrice), takesSeat: true },
+    ...(childPrice !== undefined
+      ? [
+          {
+            key: 'child',
+            label: policy ? (policy.childRange ? `Trẻ em (${policy.childRange})` : 'Trẻ em') : 'Trẻ em (2-11 tuổi)',
+            value: children,
+            set: setChildren,
+            min: 0,
+            priceLabel: formatVND(childPrice),
+            takesSeat: true,
+          },
+        ]
+      : []),
+    ...(!policy || policy.freeRange
+      ? [{ key: 'infant', label: policy ? `Trẻ nhỏ (${policy.freeRange})` : 'Em bé (dưới 2 tuổi)', value: infants, set: setInfants, min: 0, priceLabel: 'Miễn phí', takesSeat: false }]
+      : []),
+  ];
 
   const toggleAddOn = (id: string) => setSelectedAddOns((prev) => (prev.includes(id) ? prev.filter((a) => a !== id) : [...prev, id]));
 
   const minutes = String(Math.floor(countdown / 60)).padStart(2, '0');
   const seconds = String(countdown % 60).padStart(2, '0');
 
-  const canSubmitForm = departureDate && contactName.trim() && /^[0-9+ ]{8,14}$/.test(contactPhone) && /^\S+@\S+\.\S+$/.test(contactEmail);
+  const canSubmitForm = departureDate && !overSeats && contactName.trim() && /^[0-9+ ]{8,14}$/.test(contactPhone) && /^\S+@\S+\.\S+$/.test(contactEmail);
   const cardValid = /^[0-9 ]{16,19}$/.test(cardNumber) && cardName.trim().length > 2 && /^\d{2}\/\d{2}$/.test(cardExpiry) && /^\d{3,4}$/.test(cardCvc);
 
   const handlePay = () => {
@@ -76,6 +127,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClo
         bookingCode: generateBookingCode(),
         tourId: tour.id,
         departureDate,
+        departureCode: departure?.id,
         adults,
         children,
         infants,
@@ -91,8 +143,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClo
         guideName: GUIDE_NAMES[Math.floor(Math.random() * GUIDE_NAMES.length)],
         guidePhone: `09${Math.floor(10000000 + Math.random() * 89999999)}`,
         hotelName: tour.itinerary.find((d) => d.accommodation)?.accommodation ?? `Khách sạn ${tour.destination}`,
-        pickupTime: '06:30',
-        pickupLocation: `Văn phòng GoReady — ${tour.departure}`,
+        ...pickupOf(tour, departure),
       };
       setBooking(b);
       onConfirm(b);
@@ -126,47 +177,68 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClo
           {step === 'form' && (
             <div className="space-y-5">
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="flex flex-col gap-1 sm:col-span-2">
-                  <span className="text-xs font-semibold text-slate-500">Ngày khởi hành</span>
-                  <input
-                    type="date"
-                    value={departureDate}
-                    onChange={(e) => setDepartureDate(e.target.value)}
-                    min={new Date().toISOString().slice(0, 10)}
-                    className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary"
-                  />
-                </label>
+                {departures.length > 0 ? (
+                  <label className="flex flex-col gap-1 sm:col-span-2">
+                    <span className="text-xs font-semibold text-slate-500">Đoàn khởi hành</span>
+                    <select
+                      value={departureId}
+                      onChange={(e) => setDepartureId(e.target.value)}
+                      className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-primary"
+                    >
+                      {departures.map((d) => (
+                        <option key={d.id} value={d.id} disabled={d.seatsLeft === 0}>
+                          {formatPillDate(d.date)}
+                          {d.date !== d.returnDate ? ` → ${formatDMY(d.returnDate)}` : ''} · {d.seatsLeft > 0 ? `còn ${d.seatsLeft} chỗ` : 'hết chỗ'}
+                        </option>
+                      ))}
+                    </select>
+                    {departure && (
+                      <span className="text-[11px] text-slate-500">
+                        Mã đoàn {departure.id} · {legSummary(departure)}
+                      </span>
+                    )}
+                  </label>
+                ) : (
+                  <label className="flex flex-col gap-1 sm:col-span-2">
+                    <span className="text-xs font-semibold text-slate-500">Ngày khởi hành</span>
+                    <input
+                      type="date"
+                      value={freeDate}
+                      onChange={(e) => setFreeDate(e.target.value)}
+                      min={new Date().toISOString().slice(0, 10)}
+                      className="rounded-xl border border-slate-200 px-3 py-2.5 text-sm outline-none focus:border-primary"
+                    />
+                  </label>
+                )}
               </div>
 
               <div className="rounded-xl border border-slate-100 p-4">
                 <h4 className="mb-3 text-sm font-bold text-slate-800">Số lượng khách</h4>
-                {[
-                  ['Người lớn', adults, setAdults, 1, formatVND(adultPrice)],
-                  ['Trẻ em (2-11 tuổi)', children, setChildren, 0, formatVND(childPrice)],
-                  ['Em bé (dưới 2 tuổi)', infants, setInfants, 0, 'Miễn phí'],
-                ].map(([label, value, setter, min, priceLabel]: any) => (
-                  <div key={label} className="flex items-center justify-between py-1.5">
+                {guestRows.map(({ key, label, value, set, min, priceLabel, takesSeat }) => (
+                  <div key={key} className="flex items-center justify-between py-1.5">
                     <div>
                       <p className="text-sm text-slate-700">{label}</p>
                       <p className="text-[11px] text-slate-400">{priceLabel} / khách</p>
                     </div>
                     <div className="flex items-center gap-3">
                       <button
-                        onClick={() => setter(Math.max(min, value - 1))}
+                        onClick={() => set(Math.max(min, value - 1))}
                         className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 text-sm hover:border-primary"
                       >
                         −
                       </button>
                       <span className="w-4 text-center text-sm font-semibold">{value}</span>
                       <button
-                        onClick={() => setter(value + 1)}
-                        className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 text-sm hover:border-primary"
+                        onClick={() => set(value + 1)}
+                        disabled={takesSeat && adults + children >= seatsLeft}
+                        className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 text-sm hover:border-primary disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200"
                       >
                         +
                       </button>
                     </div>
                   </div>
                 ))}
+                {overSeats && <p className="mt-2 text-xs font-semibold text-rose-500">Đoàn này chỉ còn {seatsLeft} chỗ. Vui lòng giảm số khách hoặc chọn đoàn khác.</p>}
               </div>
 
               <div className="rounded-xl border border-slate-100 p-4">
@@ -315,7 +387,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, onClo
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 text-xs">
                   <div><p className="text-slate-400">Hành trình</p><p className="font-semibold text-slate-800">{tour.name}</p></div>
-                  <div><p className="text-slate-400">Khởi hành</p><p className="font-semibold text-slate-800">{new Date(booking.departureDate).toLocaleDateString('vi-VN')}</p></div>
+                  <div><p className="text-slate-400">Khởi hành</p><p className="font-semibold text-slate-800">{new Date(booking.departureDate).toLocaleDateString('vi-VN')}{booking.departureCode ? ` · ${booking.departureCode}` : ''}</p></div>
                   <div><p className="text-slate-400">Số khách</p><p className="font-semibold text-slate-800">{booking.adults} người lớn, {booking.children} trẻ em, {booking.infants} em bé</p></div>
                   <div><p className="text-slate-400">Điểm đón</p><p className="font-semibold text-slate-800">{booking.pickupLocation} — {booking.pickupTime}</p></div>
                   <div><p className="text-slate-400">Khách sạn</p><p className="font-semibold text-slate-800">{booking.hotelName}</p></div>

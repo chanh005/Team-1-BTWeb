@@ -2,6 +2,7 @@ import React from 'react';
 import type { Tour } from '../types';
 import type { SuggestedToursStatus } from '../hooks/useSuggestedTours';
 import { tourHref } from '../hooks/useTourRoute';
+import { buildDepartures, formatPillDate } from '../data/departures';
 import { formatVND } from '../utils/format';
 import { onImageError } from '../utils/image';
 
@@ -14,7 +15,11 @@ interface SuggestedToursProps {
 
 const ALL = 'all';
 
-const SuggestedTourCard: React.FC<{ tour: Tour; onOpen: (tour: Tour) => void }> = ({ tour, onOpen }) => (
+const SuggestedTourCard: React.FC<{ tour: Tour; onOpen: (tour: Tour) => void }> = ({ tour, onOpen }) => {
+  // Soonest group that still has seats
+  const next = React.useMemo(() => buildDepartures(tour).find((d) => d.seatsLeft > 0), [tour]);
+
+  return (
   <a
     href={tourHref(tour.id)}
     onClick={(e) => {
@@ -45,7 +50,23 @@ const SuggestedTourCard: React.FC<{ tour: Tour; onOpen: (tour: Tour) => void }> 
     <div className="flex flex-1 flex-col gap-2 p-4">
       <h3 className="line-clamp-2 min-h-[2.5rem] font-heading text-sm font-bold text-slate-900 group-hover:text-primary">{tour.name}</h3>
       <p className="line-clamp-2 text-xs text-slate-500">{tour.shortDescription}</p>
-      <div className="text-xs font-semibold text-slate-700">{tour.durationLabel || `${tour.duration} ngày`}</div>
+      <div className="flex items-center justify-between gap-2 text-xs">
+        <span className="font-semibold text-slate-700">{tour.durationLabel || `${tour.duration} ngày`}</span>
+        {tour.rating > 0 ? (
+          <span className="flex items-center gap-1 font-semibold text-amber-500" aria-label={`Đánh giá ${tour.rating.toFixed(1)} trên 5 sao`}>
+            ★ {tour.rating.toFixed(1)}
+            {tour.reviewCount > 0 && <span className="font-normal text-slate-400">({tour.reviewCount.toLocaleString('vi-VN')})</span>}
+          </span>
+        ) : (
+          <span className="text-slate-400">Chưa có đánh giá</span>
+        )}
+      </div>
+
+      {next && (
+        <div className="text-[11px] text-slate-500">
+          📅 <span className="font-semibold text-slate-700">{formatPillDate(next.date)}</span> · còn {next.seatsLeft} chỗ
+        </div>
+      )}
 
       <div className="mt-auto flex items-end justify-between pt-2">
         <div>
@@ -60,7 +81,8 @@ const SuggestedTourCard: React.FC<{ tour: Tour; onOpen: (tour: Tour) => void }> 
       </div>
     </div>
   </a>
-);
+  );
+};
 
 const SkeletonCard: React.FC = () => (
   <div className="w-[260px] shrink-0 animate-pulse overflow-hidden rounded-2xl border border-slate-100 bg-white sm:w-[280px]">

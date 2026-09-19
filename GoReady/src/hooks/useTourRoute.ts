@@ -22,6 +22,8 @@ export function useTourRoute() {
   const [tourId, setTourId] = React.useState<string | null>(readTourId);
   // True when the current tour route was pushed by the app, so closing can pop it with history.back()
   const pushedByApp = React.useRef(false);
+  // Scroll position of the list the visitor opened the tour from, restored when they come back
+  const savedScroll = React.useRef<number | null>(null);
 
   React.useEffect(() => {
     const sync = () => {
@@ -33,7 +35,15 @@ export function useTourRoute() {
     return () => window.removeEventListener('hashchange', sync);
   }, []);
 
+  React.useEffect(() => {
+    if (tourId !== null || savedScroll.current === null) return;
+    const y = savedScroll.current;
+    savedScroll.current = null;
+    requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }));
+  }, [tourId]);
+
   const openTour = React.useCallback((id: string) => {
+    savedScroll.current = window.scrollY;
     pushedByApp.current = true;
     window.location.hash = tourHref(id);
   }, []);

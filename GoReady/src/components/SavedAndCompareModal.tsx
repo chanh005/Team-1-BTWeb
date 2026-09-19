@@ -14,8 +14,8 @@ interface SavedAndCompareModalProps {
 
 const ROWS: { label: string; render: (t: Tour) => React.ReactNode }[] = [
   { label: 'Giá', render: (t) => <span className="font-bold text-primary-700">{formatVND(t.discountPrice ?? t.price)}</span> },
-  { label: 'Thời lượng', render: (t) => `${t.duration} ngày ${t.nights} đêm` },
-  { label: 'Khách sạn', render: (t) => `${'★'.repeat(t.hotelStars)} (${t.hotelStars} sao)` },
+  { label: 'Thời lượng', render: (t) => t.durationLabel || `${t.duration} ngày ${t.nights} đêm` },
+  { label: 'Khách sạn', render: (t) => (t.hotelStars > 0 ? `${'★'.repeat(t.hotelStars)} (${t.hotelStars} sao)` : '—') },
   { label: 'Điểm nhấn lộ trình', render: (t) => (
     <ul className="list-disc space-y-0.5 pl-4 text-left text-xs">
       {t.highlights.slice(0, 3).map((h) => <li key={h}>{h}</li>)}
@@ -23,7 +23,7 @@ const ROWS: { label: string; render: (t: Tour) => React.ReactNode }[] = [
   ) },
   { label: 'Chính sách hoàn hủy', render: (t) => <span className="text-xs">{t.cancellationPolicy}</span> },
   { label: 'Dịch vụ đi kèm', render: (t) => `${t.includes.length} dịch vụ bao gồm` },
-  { label: 'Đánh giá', render: (t) => `★ ${t.rating.toFixed(1)} (${t.reviewCount})` },
+  { label: 'Đánh giá', render: (t) => (t.reviewCount > 0 ? `★ ${t.rating.toFixed(1)} (${t.reviewCount})` : 'Chưa có đánh giá') },
 ];
 
 const SavedAndCompareModal: React.FC<SavedAndCompareModalProps> = ({

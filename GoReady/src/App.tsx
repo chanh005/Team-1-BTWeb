@@ -2,10 +2,12 @@ import React from 'react';
 import Navbar, { type NavView } from './components/Navbar';
 import HeroSearch from './components/HeroSearch';
 import FilterBar from './components/FilterBar';
+import SuggestedTours from './components/SuggestedTours';
 import TourList from './components/TourList';
 import FeaturedDestinations from './components/FeaturedDestinations';
 import NewsFeed from './components/NewsFeed';
 import TourDetailModal from './components/TourDetailModal';
+import TourDetailPage from './components/TourDetailPage';
 import SavedAndCompareModal from './components/SavedAndCompareModal';
 import AiItineraryModal from './components/AiItineraryModal';
 import BookingCheckoutModal from './components/BookingCheckoutModal';
@@ -16,6 +18,9 @@ import Footer from './components/Footer';
 import { DEFAULT_CHECKLIST } from './data/checklist';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { usePolledResource } from './hooks/usePolledResource';
+import { useSuggestedTours } from './hooks/useSuggestedTours';
+import { mergeSuggestedTours } from './services/suggestedTours';
+import { useTourRoute } from './hooks/useTourRoute';
 import { api } from './api';
 import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, SearchFilterState, Tour, UserReview } from './types';
 import { uid } from './utils/format';
@@ -56,8 +61,8 @@ function App() {
   const bookings = bookingsData ?? [];
   const accounts = accountsData ?? [];
 
-  const [activeTour, setActiveTour] = React.useState<Tour | null>(null);
   const [bookingTour, setBookingTour] = React.useState<Tour | null>(null);
+  const [bookingDepartureId, setBookingDepartureId] = React.useState('');
   const [showSaved, setShowSaved] = React.useState(false);
   const [showAi, setShowAi] = React.useState(false);
   const [showLogin, setShowLogin] = React.useState(false);
@@ -67,6 +72,36 @@ function App() {
     setToast(msg);
     window.setTimeout(() => setToast(null), 2600);
   };
+
+  const { tours: suggestedTours, status: suggestedStatus, reload: reloadSuggested } = useSuggestedTours();
+  const { tourId, openTour, closeTour } = useTourRoute();
+
+  // Every tour that can be opened, saved or booked: tours served by the API + "Gợi ý chuyến đi" tours from the sheet
+  const allTours = React.useMemo(() => {
+    const seen = new Set<string>();
+    // Imported sheet tours exist in both lists: the database copy (editable by the admin) wins
+    return [...tours, ...suggestedTours].filter((t) => !seen.has(t.id) && seen.add(t.id));
+  }, [tours, suggestedTours]);
+  // Direct links never open a tour the admin has hidden
+  const activeTour = React.useMemo(
+    () => (tourId ? allTours.find((t) => !t.hidden && t.id.toLowerCase() === tourId.toLowerCase()) ?? null : null),
+    [tourId, allTours],
+  );
+  // Both sources load asynchronously: the API tours (null until the first poll returns) and the sheet tours
+  const toursLoading = toursData === null || suggestedStatus === 'loading';
+
+  // A #/tour/:id link that matches no tour (once both sources have finished loading)
+  React.useEffect(() => {
+    if (tourId && !activeTour && !toursLoading) {
+      notify('Không tìm thấy tour bạn yêu cầu');
+      closeTour();
+    }
+  }, [tourId, activeTour, toursLoading, closeTour]);
+
+  // Tours from the sheet (they carry a `code`) get the full detail page; API tours keep the modal (map, reviews)
+  const detailPage = activeTour?.code ? activeTour : null;
+  // #/tour/:id opened directly while tours are still loading: avoid flashing the home page
+  const tourLoading = Boolean(tourId && !activeTour && toursLoading);
 
   const currentUser = React.useMemo(
     () => (currentUserEmail ? accounts.find((u) => u.email.toLowerCase() === currentUserEmail.toLowerCase()) ?? null : null),
@@ -86,7 +121,12 @@ function App() {
 
   const patchFilters = (patch: Partial<SearchFilterState>) => setFilters((f) => ({ ...f, ...patch }));
 
-  const visibleTours = React.useMemo(() => tours.filter((t) => !t.hidden), [tours]);
+  // Tours imported from the sheet (they carry a `code`) are shown in "Gợi ý chuyến đi", not repeated in the main list
+  const visibleTours = React.useMemo(() => tours.filter((t) => !t.hidden && !t.code), [tours]);
+  // "Gợi ý chuyến đi": the database copy of the sheet tours (what the admin edits: images, price...) once it exists.
+  // The list is only shown after the sheet has settled: its order comes from the sheet, and letting the cards
+  // reorder a moment after they first appear makes the browser drag the slider along with them.
+  const { tours: visibleSuggested, fromDatabase: suggestedFromDb } = React.useMemo(() => mergeSuggestedTours(tours, suggestedTours), [tours, suggestedTours]);
 
   const filteredTours = React.useMemo(() => {
     let list = visibleTours.filter((t) => {
@@ -180,8 +220,8 @@ function App() {
     notify('Đánh giá của bạn đã được gửi thành công!');
   };
 
-  const savedTours = tours.filter((t) => savedIds.includes(t.id));
-  const compareTours = tours.filter((t) => compareIds.includes(t.id));
+  const savedTours = allTours.filter((t) => savedIds.includes(t.id));
+  const compareTours = allTours.filter((t) => compareIds.includes(t.id));
 
   const myBookings = React.useMemo(
     () => (currentUserEmail ? bookings.filter((b) => b.contactEmail.toLowerCase() === currentUserEmail.toLowerCase()) : []),
@@ -245,7 +285,10 @@ function App() {
     <div className="min-h-screen bg-surface font-body">
       <Navbar
         view={view}
-        onNavigate={setView}
+        onNavigate={(v) => {
+          if (tourId) closeTour();
+          setView(v);
+        }}
         savedCount={savedIds.length}
         compareCount={compareIds.length}
         onOpenSaved={() => setShowSaved(true)}
@@ -266,9 +309,23 @@ function App() {
         }}
       />
 
-      {view === 'home' && (
+      {detailPage ? (
+        <TourDetailPage
+          tour={detailPage}
+          isSaved={savedIds.includes(detailPage.id)}
+          onBack={closeTour}
+          onToggleSave={toggleSave}
+          onBook={(t, departure) => {
+            setBookingDepartureId(departure?.id ?? '');
+            setBookingTour(t);
+          }}
+        />
+      ) : tourLoading ? (
+        <div className="container-px mx-auto py-24 text-center text-sm text-slate-500">Đang tải thông tin tour…</div>
+      ) : view === 'home' ? (
         <>
           <HeroSearch filters={filters} onChange={patchFilters} onSearch={() => goToExplore(filters.destination)} />
+          <SuggestedTours tours={visibleSuggested} status={suggestedFromDb && suggestedStatus !== 'loading' ? 'ready' : suggestedStatus} onRetry={reloadSuggested} onOpenTour={(t) => openTour(t.id)} />
           <section className="container-px mx-auto py-8">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-heading text-xl font-bold text-slate-900">Tour nổi bật</h2>
@@ -283,16 +340,14 @@ function App() {
               tours={featuredTours}
               savedIds={savedIds}
               compareIds={compareIds}
-              onOpenDetail={setActiveTour}
+              onOpenDetail={(t) => openTour(t.id)}
               onToggleSave={toggleSave}
               onToggleCompare={toggleCompare}
             />
           </section>
           <FeaturedDestinations tours={visibleTours} onSelectDestination={handleSelectDestination} />
         </>
-      )}
-
-      {view === 'explore' && (
+      ) : view === 'explore' ? (
         <>
           <section className="border-b border-slate-100 bg-white">
             <div className="container-px mx-auto py-6">
@@ -333,20 +388,20 @@ function App() {
               tours={filteredTours}
               savedIds={savedIds}
               compareIds={compareIds}
-              onOpenDetail={setActiveTour}
+              onOpenDetail={(t) => openTour(t.id)}
               onToggleSave={toggleSave}
               onToggleCompare={toggleCompare}
             />
           </main>
         </>
-      )}
+      ) : null}
 
       {view === 'news' && <NewsFeed />}
 
       {view === 'trips' && (
         <MyTripsDashboard
           bookings={myBookings}
-          tours={tours}
+          tours={allTours}
           checklist={checklist}
           onToggleChecklist={handleToggleChecklist}
           onAddChecklistItem={handleAddChecklistItem}
@@ -361,7 +416,7 @@ function App() {
           initialTab={accountTab}
           currentUser={currentUser}
           myBookings={myBookings}
-          tours={tours}
+          tours={allTours}
           userReviews={userReviews.filter(r => r.authorEmail === currentUser.email.toLowerCase())}
           onLogout={() => {
             setCurrentUserEmail('');
@@ -376,17 +431,18 @@ function App() {
 
       <Footer />
 
-      {activeTour && (
+      {activeTour && !detailPage && (
         <TourDetailModal
           tour={activeTour}
           isSaved={savedIds.includes(activeTour.id)}
           currentUser={currentUser}
           userReviews={userReviews}
           onAddReview={handleAddReview}
-          onClose={() => setActiveTour(null)}
+          onClose={closeTour}
           onToggleSave={toggleSave}
           onBook={(t) => {
-            setActiveTour(null);
+            closeTour();
+            setBookingDepartureId('');
             setBookingTour(t);
           }}
         />
@@ -401,10 +457,11 @@ function App() {
           onToggleCompare={toggleCompare}
           onOpenDetail={(t) => {
             setShowSaved(false);
-            setActiveTour(t);
+            openTour(t.id);
           }}
           onBook={(t) => {
             setShowSaved(false);
+            setBookingDepartureId('');
             setBookingTour(t);
           }}
         />
@@ -417,11 +474,13 @@ function App() {
       {bookingTour && (
         <BookingCheckoutModal
           tour={bookingTour}
+          initialDepartureId={bookingDepartureId}
           onClose={() => setBookingTour(null)}
           onConfirm={handleConfirmBooking}
           defaultName={currentUser?.name}
           defaultEmail={currentUser?.email}
         />
+
       )}
 
       {toast && (

@@ -75,7 +75,7 @@ export interface Tour {
   duration: number; // days
   nights: number;
   departure: string;
-  hotelStars: 3 | 4 | 5;
+  hotelStars: 0 | 3 | 4 | 5; // 0 = no star-rated hotel in the package
   transport: string;
   styleTags: TravelStyle[];
   groupSizeTags: GroupSizeTag[];
@@ -90,6 +90,50 @@ export interface Tour {
   cancellationPolicy: string;
   route: Coordinate[]; // full trip route (all days)
   hidden?: boolean; // admin-only: ẩn tour khỏi trang người dùng
+
+  // Optional fields, populated for tours loaded from the "Gợi ý chuyến đi" sheet
+  code?: string; // sheet code, e.g. "SP01"
+  durationLabel?: string; // raw duration text, e.g. "1 buổi (17:00 - 21:00)"
+  childPrice?: number; // VND
+  category?: string; // e.g. "Tour Miền Bắc"
+  keywords?: string[];
+}
+
+// --- Lịch khởi hành cố định của đoàn (tour "Gợi ý chuyến đi") ---
+export type TransportKind = 'flight' | 'limousine' | 'coach' | 'local';
+
+/** Một chặng di chuyển của đoàn: chuyến bay, xe limousine/giường nằm, hoặc xe đón tại điểm hẹn. */
+export interface DepartureLeg {
+  label: string; // "Ngày đi" | "Ngày về" | "Giờ đón" | "Kết thúc"
+  date: string; // "YYYY-MM-DD"
+  kind: TransportKind;
+  operator: string; // hãng bay hoặc loại xe
+  code?: string; // số hiệu chuyến bay, vd. "VJ770"
+  from: string;
+  fromCode?: string; // mã sân bay
+  to: string;
+  toCode?: string;
+  departTime: string; // "08:05"
+  arriveTime: string; // "" với xe đón tại điểm hẹn
+}
+
+export interface DeparturePrices {
+  adult: number;
+  child?: number;
+  childRange: string; // "Từ 5 - 11 tuổi"
+  freeRange: string; // "Dưới 5 tuổi" — được miễn phí
+  singleRoom?: number; // phụ thu phòng đơn
+}
+
+export interface Departure {
+  id: string; // mã đoàn, vd. "DN01-210926VJ"
+  date: string;
+  returnDate: string;
+  kind: TransportKind;
+  departFrom: string;
+  seatsLeft: number;
+  legs: [DepartureLeg, DepartureLeg];
+  prices: DeparturePrices;
 }
 
 export interface AddOnService {
@@ -107,6 +151,7 @@ export interface Booking {
   bookingCode: string;
   tourId: string;
   departureDate: string; // ISO date
+  departureCode?: string; // mã đoàn (tour có lịch khởi hành cố định)
   adults: number;
   children: number;
   infants: number;

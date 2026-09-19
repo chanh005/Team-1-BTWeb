@@ -328,6 +328,24 @@ const fetchApiTours = async (signal?: AbortSignal): Promise<Tour[]> => {
   return data as Tour[];
 };
 
+/**
+ * The tours "Gợi ý chuyến đi" shows on the home page.
+ *
+ * Once the admin console has put the sheet tours in the database (they carry a `code`), the database is the source
+ * of truth: whatever the admin edits there (images, price, name...) is what visitors see, hidden tours disappear and
+ * deleted tours stay gone. Until then the sheet itself is shown. Sheet order is kept where known.
+ */
+export const mergeSuggestedTours = (dbTours: Tour[], sheetTours: Tour[]): { tours: Tour[]; fromDatabase: boolean } => {
+  const fromDb = dbTours.filter((t) => t.code);
+  if (fromDb.length === 0) return { tours: sheetTours, fromDatabase: false };
+
+  const order = new Map(sheetTours.map((t, i) => [t.id, i]));
+  const tours = fromDb
+    .filter((t) => !t.hidden)
+    .sort((a, b) => (order.get(a.id) ?? Infinity) - (order.get(b.id) ?? Infinity) || a.name.localeCompare(b.name, 'vi'));
+  return { tours, fromDatabase: true };
+};
+
 interface TourSource {
   label: string;
   load: () => Promise<Tour[]>;

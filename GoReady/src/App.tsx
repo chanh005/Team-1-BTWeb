@@ -19,6 +19,7 @@ import { DEFAULT_CHECKLIST } from './data/checklist';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { usePolledResource } from './hooks/usePolledResource';
 import { useSuggestedTours } from './hooks/useSuggestedTours';
+import { mergeSuggestedTours } from './services/suggestedTours';
 import { useTourRoute } from './hooks/useTourRoute';
 import { api } from './api';
 import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, SearchFilterState, Tour, UserReview } from './types';
@@ -122,11 +123,10 @@ function App() {
 
   // Tours imported from the sheet (they carry a `code`) are shown in "Gợi ý chuyến đi", not repeated in the main list
   const visibleTours = React.useMemo(() => tours.filter((t) => !t.hidden && !t.code), [tours]);
-  // "Gợi ý chuyến đi" still reads the sheet, so honour the admin hiding an imported tour
-  const visibleSuggested = React.useMemo(() => {
-    const hiddenIds = new Set(tours.filter((t) => t.hidden).map((t) => t.id));
-    return suggestedTours.filter((t) => !hiddenIds.has(t.id));
-  }, [tours, suggestedTours]);
+  // "Gợi ý chuyến đi": the database copy of the sheet tours (what the admin edits: images, price...) once it exists.
+  // The list is only shown after the sheet has settled: its order comes from the sheet, and letting the cards
+  // reorder a moment after they first appear makes the browser drag the slider along with them.
+  const { tours: visibleSuggested, fromDatabase: suggestedFromDb } = React.useMemo(() => mergeSuggestedTours(tours, suggestedTours), [tours, suggestedTours]);
 
   const filteredTours = React.useMemo(() => {
     let list = visibleTours.filter((t) => {
@@ -325,7 +325,7 @@ function App() {
       ) : view === 'home' ? (
         <>
           <HeroSearch filters={filters} onChange={patchFilters} onSearch={() => goToExplore(filters.destination)} />
-          <SuggestedTours tours={visibleSuggested} status={suggestedStatus} onRetry={reloadSuggested} onOpenTour={(t) => openTour(t.id)} />
+          <SuggestedTours tours={visibleSuggested} status={suggestedFromDb && suggestedStatus !== 'loading' ? 'ready' : suggestedStatus} onRetry={reloadSuggested} onOpenTour={(t) => openTour(t.id)} />
           <section className="container-px mx-auto py-8">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-heading text-xl font-bold text-slate-900">Tour nổi bật</h2>

@@ -1,7 +1,9 @@
 import React from 'react';
 import type { Tour } from '../../types';
 import { formatVND, uid } from '../../utils/format';
+import { api } from '../../api';
 import { onImageError } from '../../utils/image';
+import { compressImage } from '../../utils/imageUpload';
 
 interface TourManagementProps {
   tours: Tour[];
@@ -19,7 +21,7 @@ type TourFormState = {
   destination: string;
   country: string;
   region: 'Việt Nam' | 'Quốc tế';
-  coverImage: string;
+  images: string[]; // images[0] is the cover, the rest is the gallery
   price: string;
   discountPrice: string;
   duration: string;
@@ -34,7 +36,7 @@ const EMPTY_FORM: TourFormState = {
   destination: '',
   country: 'Việt Nam',
   region: 'Việt Nam',
-  coverImage: '',
+  images: [],
   price: '',
   discountPrice: '',
   duration: '3',
@@ -44,12 +46,19 @@ const EMPTY_FORM: TourFormState = {
   shortDescription: '',
 };
 
+const DEFAULT_COVER = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=800&fit=crop&q=80';
+
+const MAX_IMAGES = 12;
+
+const isImageUrl = (value: string) => /^(https?:)?\/\//.test(value) || value.startsWith('/');
+
 const tourToForm = (t: Tour): TourFormState => ({
   name: t.name,
   destination: t.destination,
   country: t.country,
   region: t.region,
-  coverImage: t.coverImage,
+  // Sheet tours without a photo carry a generated placeholder (data: URI): it is not an image the admin can manage
+  images: [t.coverImage, ...t.gallery].filter((url) => url && !url.startsWith('data:')),
   price: String(t.price),
   discountPrice: t.discountPrice ? String(t.discountPrice) : '',
   duration: String(t.duration),
@@ -65,30 +74,104 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
   const [showForm, setShowForm] = React.useState(false);
   const [form, setForm] = React.useState<TourFormState>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = React.useState<Tour | null>(null);
+  const [upload, setUpload] = React.useState<{ done: number; total: number } | null>(null);
+  const [imageErrors, setImageErrors] = React.useState<string[]>([]);
+  const [urlDraft, setUrlDraft] = React.useState('');
+  // Bumped every time the form opens/closes so an upload that finishes late never lands in a different form
+  const formSession = React.useRef(0);
 
   const filtered = tours.filter(
     (t) => t.name.toLowerCase().includes(query.toLowerCase()) || t.destination.toLowerCase().includes(query.toLowerCase())
   );
 
+  const resetImageUi = () => {
+    formSession.current++;
+    setUpload(null);
+    setImageErrors([]);
+    setUrlDraft('');
+  };
+
   const openAddForm = () => {
+    resetImageUi();
     setEditingTour(null);
     setForm(EMPTY_FORM);
     setShowForm(true);
   };
 
   const openEditForm = (tour: Tour) => {
+    resetImageUi();
     setEditingTour(tour);
     setForm(tourToForm(tour));
     setShowForm(true);
   };
 
+  const closeForm = () => {
+    resetImageUi();
+    setShowForm(false);
+  };
+
   const patchForm = (patch: Partial<TourFormState>) => setForm((f) => ({ ...f, ...patch }));
+
+  const addImages = (urls: string[]) =>
+    setForm((f) => ({ ...f, images: [...f.images, ...urls.filter((url) => !f.images.includes(url))].slice(0, MAX_IMAGES) }));
+  const removeImage = (url: string) => setForm((f) => ({ ...f, images: f.images.filter((u) => u !== url) }));
+  const makeCover = (url: string) => setForm((f) => ({ ...f, images: [url, ...f.images.filter((u) => u !== url)] }));
+
+  const addImageUrl = () => {
+    const url = urlDraft.trim();
+    if (!url) return;
+    if (!isImageUrl(url)) {
+      setImageErrors(['URL ảnh phải bắt đầu bằng http://, https:// hoặc /']);
+      return;
+    }
+    if (form.images.length >= MAX_IMAGES) {
+      setImageErrors([`Mỗi tour chỉ có tối đa ${MAX_IMAGES} ảnh`]);
+      return;
+    }
+    addImages([url]);
+    setUrlDraft('');
+    setImageErrors([]);
+  };
+
+  // Several photos at once: each is shrunk in the browser, uploaded, and its thumbnail appears as soon as it is stored
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ''; // lets the same file be picked again later
+    if (files.length === 0) return;
+
+    const session = formSession.current;
+    const queue = files.slice(0, Math.max(MAX_IMAGES - form.images.length, 0));
+    const errors: string[] = [];
+    if (files.length > queue.length) errors.push(`Mỗi tour chỉ có tối đa ${MAX_IMAGES} ảnh, đã bỏ qua ${files.length - queue.length} ảnh.`);
+    if (queue.length === 0) {
+      setImageErrors(errors);
+      return;
+    }
+
+    setImageErrors([]);
+    setUpload({ done: 0, total: queue.length });
+    for (const [i, file] of queue.entries()) {
+      try {
+        const { url } = await api.uploadImage(await compressImage(file));
+        if (formSession.current !== session) return; // the form was closed meanwhile
+        addImages([url]);
+      } catch (err) {
+        errors.push(err instanceof Error ? err.message : `Không tải được "${file.name}"`);
+      }
+      if (formSession.current !== session) return;
+      setUpload({ done: i + 1, total: queue.length });
+    }
+    setUpload(null);
+    setImageErrors(errors);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const price = Number(form.price) || 0;
     const discountPrice = form.discountPrice ? Number(form.discountPrice) : undefined;
-    const coverImage = form.coverImage || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=800&fit=crop&q=80';
+    // First image = cover. With no images the tour keeps the cover it already had
+    const coverImage = form.images[0] || editingTour?.coverImage || DEFAULT_COVER;
+    const gallery = form.images.slice(1);
 
     if (editingTour) {
       onUpdate({
@@ -98,6 +181,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         country: form.country,
         region: form.region,
         coverImage,
+        gallery,
         price,
         discountPrice,
         duration: Number(form.duration) || 1,
@@ -115,7 +199,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         country: form.country,
         region: form.region,
         coverImage,
-        gallery: [coverImage],
+        gallery,
         shortDescription: form.shortDescription,
         description: form.shortDescription,
         price,
@@ -140,7 +224,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
       };
       onAdd(newTour);
     }
-    setShowForm(false);
+    closeForm();
   };
 
   return (
@@ -267,10 +351,81 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
                   <option value="5">5 sao</option>
                 </select>
               </label>
-              <label className="col-span-2 flex flex-col gap-1">
-                <span className="text-xs font-semibold text-slate-500">Ảnh bìa (URL)</span>
-                <input value={form.coverImage} onChange={(e) => patchForm({ coverImage: e.target.value })} placeholder="https://..." className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
-              </label>
+              <div className="col-span-2 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-semibold text-slate-500">
+                    Ảnh tour ({form.images.length}/{MAX_IMAGES})
+                  </span>
+                  <label
+                    className={`cursor-pointer rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary-50 ${
+                      upload || form.images.length >= MAX_IMAGES ? 'pointer-events-none opacity-50' : ''
+                    }`}
+                  >
+                    {upload ? `Đang tải ${upload.done}/${upload.total}...` : '+ Chọn ảnh từ máy'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={handleFileInput} />
+                  </label>
+                </div>
+
+                {form.images.length > 0 ? (
+                  <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {form.images.map((url, i) => (
+                      <li key={url} className="group relative overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+                        <img src={url} alt={`Ảnh ${i + 1}`} onError={onImageError} className="h-20 w-full object-cover" />
+                        {i === 0 ? (
+                          <span className="absolute bottom-1 left-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">Ảnh bìa</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => makeCover(url)}
+                            className="absolute bottom-1 left-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 opacity-0 hover:text-primary focus:opacity-100 group-hover:opacity-100"
+                          >
+                            Đặt làm bìa
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(url)}
+                          aria-label="Xoá ảnh"
+                          className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[10px] text-white hover:bg-red-500"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-400">
+                    {editingTour ? 'Tour chưa có ảnh riêng nên đang dùng ảnh hiện tại. Chọn ảnh từ máy để thay thế.' : 'Chưa có ảnh. Bạn có thể chọn nhiều ảnh cùng lúc từ máy.'}
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    value={urlDraft}
+                    onChange={(e) => setUrlDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addImageUrl();
+                      }
+                    }}
+                    placeholder="Hoặc dán URL ảnh rồi bấm Thêm"
+                    className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3.5 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <button type="button" onClick={addImageUrl} className="shrink-0 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:border-primary hover:text-primary">
+                    Thêm
+                  </button>
+                </div>
+
+                {imageErrors.length > 0 && (
+                  <ul className="space-y-0.5 text-[11px] text-red-500">
+                    {imageErrors.map((message, i) => (
+                      <li key={i}>{message}</li>
+                    ))}
+                  </ul>
+                )}
+                <span className="text-[11px] text-slate-400">Ảnh đầu tiên là ảnh bìa. Tất cả ảnh hiện trên thẻ tour và trang chi tiết ở trang chủ.</span>
+              </div>
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-semibold text-slate-500">Giá gốc (VNĐ)</span>
                 <input required type="number" min="0" value={form.price} onChange={(e) => patchForm({ price: e.target.value })} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
@@ -297,10 +452,10 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
               </label>
             </div>
             <div className="mt-5 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300">
+              <button type="button" onClick={closeForm} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300">
                 Huỷ
               </button>
-              <button type="submit" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-card hover:bg-primary-600">
+              <button type="submit" disabled={upload !== null} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-card hover:bg-primary-600 disabled:cursor-wait disabled:opacity-50">
                 {editingTour ? 'Lưu thay đổi' : 'Thêm tour'}
               </button>
             </div>

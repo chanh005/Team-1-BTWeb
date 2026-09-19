@@ -26,6 +26,9 @@ export const api = {
   toggleTourHidden: (id: string) => request<Tour>(`/tours/${id}/hidden`, { method: 'PATCH' }),
   deleteTour: (id: string) => request<void>(`/tours/${id}`, { method: 'DELETE' }),
 
+  /** Stores a photo (JPEG/PNG/WebP/GIF data URL) and returns the URL to save in a tour's coverImage / gallery. */
+  uploadImage: (dataUrl: string) => request<{ id: string; url: string }>('/images', { method: 'POST', body: JSON.stringify({ dataUrl }) }),
+
   getBookings: () => request<Booking[]>('/bookings'),
   createBooking: (booking: Booking) => request<Booking>('/bookings', { method: 'POST', body: JSON.stringify(booking) }),
   updateBookingStatus: (id: string, status: BookingStatus) =>

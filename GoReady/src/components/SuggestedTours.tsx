@@ -166,7 +166,7 @@ const SuggestedTours: React.FC<SuggestedToursProps> = ({ tours, status, onRetry,
             </button>
           </div>
         ) : (
-          <div ref={sliderRef} className="no-scrollbar mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3">
+          <div ref={sliderRef} className="no-scrollbar mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth pb-3 [overflow-anchor:none]">
             {status === 'loading'
               ? Array.from({ length: 4 }, (_, i) => <SkeletonCard key={i} />)
               : visible.map((tour) => <SuggestedTourCard key={tour.id} tour={tour} onOpen={onOpenTour} />)}

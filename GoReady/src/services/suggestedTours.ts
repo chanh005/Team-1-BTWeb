@@ -328,15 +328,28 @@ const fetchApiTours = async (signal?: AbortSignal): Promise<Tour[]> => {
   return data as Tour[];
 };
 
+interface TourSource {
+  label: string;
+  load: () => Promise<Tour[]>;
+}
+
+/** The sheet itself: the configured Google Sheet, then the bundled CSV. */
+const sheetSources = (signal?: AbortSignal): TourSource[] => [
+  ...(REMOTE_SOURCE
+    ? [{ label: 'Google Sheets', load: async () => parseSuggestedTours(await fetchText(toCsvUrl(REMOTE_SOURCE), signal)) }]
+    : []),
+  { label: LOCAL_SOURCE, load: async () => parseSuggestedTours(await fetchText(LOCAL_SOURCE, signal)) },
+];
+
 /** Loads suggested tours: backend API first, then the configured Google Sheet, then the bundled CSV. */
-export const fetchSuggestedTours = async (signal?: AbortSignal): Promise<Tour[]> => {
-  const sources: { label: string; load: () => Promise<Tour[]> }[] = [
-    { label: API_SOURCE, load: () => fetchApiTours(signal) },
-    ...(REMOTE_SOURCE
-      ? [{ label: 'Google Sheets', load: async () => parseSuggestedTours(await fetchText(toCsvUrl(REMOTE_SOURCE), signal)) }]
-      : []),
-    { label: LOCAL_SOURCE, load: async () => parseSuggestedTours(await fetchText(LOCAL_SOURCE, signal)) },
-  ];
+export const fetchSuggestedTours = (signal?: AbortSignal): Promise<Tour[]> =>
+  loadFirstValid([{ label: API_SOURCE, load: () => fetchApiTours(signal) }, ...sheetSources(signal)], signal);
+
+/** Reads the sheet only (never the API), for the admin import: Google Sheet, then the bundled CSV. */
+export const fetchSheetTours = (signal?: AbortSignal): Promise<Tour[]> => loadFirstValid(sheetSources(signal), signal);
+
+/** Tries each source in order; the first one that yields tours wins. */
+const loadFirstValid = async (sources: TourSource[], signal?: AbortSignal): Promise<Tour[]> => {
   let lastError: unknown = new Error('Chưa cấu hình nguồn dữ liệu tour gợi ý');
 
   for (const { label, load } of sources) {

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Tour } from '../../types';
 import { formatVND, uid } from '../../utils/format';
+import { onImageError } from '../../utils/image';
 
 interface TourManagementProps {
   tours: Tour[];
@@ -8,6 +9,9 @@ interface TourManagementProps {
   onUpdate: (tour: Tour) => void;
   onDelete: (tourId: string) => void;
   onToggleHidden: (tourId: string) => void;
+  /** One-off message from the app, e.g. that the Google Sheet tours were just added. */
+  notice?: { tone: 'ok' | 'warn'; text: string } | null;
+  onDismissNotice?: () => void;
 }
 
 type TourFormState = {
@@ -20,7 +24,7 @@ type TourFormState = {
   discountPrice: string;
   duration: string;
   nights: string;
-  hotelStars: '3' | '4' | '5';
+  hotelStars: '0' | '3' | '4' | '5'; // 0 = không xếp sao (tour nhập từ Google Sheet có thể không ghi hạng)
   transport: string;
   shortDescription: string;
 };
@@ -50,12 +54,12 @@ const tourToForm = (t: Tour): TourFormState => ({
   discountPrice: t.discountPrice ? String(t.discountPrice) : '',
   duration: String(t.duration),
   nights: String(t.nights),
-  hotelStars: String(t.hotelStars) as '3' | '4' | '5',
+  hotelStars: String(t.hotelStars) as TourFormState['hotelStars'],
   transport: t.transport,
   shortDescription: t.shortDescription,
 });
 
-const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate, onDelete, onToggleHidden }) => {
+const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate, onDelete, onToggleHidden, notice, onDismissNotice }) => {
   const [query, setQuery] = React.useState('');
   const [editingTour, setEditingTour] = React.useState<Tour | null>(null);
   const [showForm, setShowForm] = React.useState(false);
@@ -98,7 +102,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         discountPrice,
         duration: Number(form.duration) || 1,
         nights: Number(form.nights) || 0,
-        hotelStars: Number(form.hotelStars) as 3 | 4 | 5,
+        hotelStars: Number(form.hotelStars) as Tour['hotelStars'],
         transport: form.transport,
         shortDescription: form.shortDescription,
       });
@@ -119,7 +123,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         duration: Number(form.duration) || 1,
         nights: Number(form.nights) || 0,
         departure: 'TP. Hồ Chí Minh',
-        hotelStars: Number(form.hotelStars) as 3 | 4 | 5,
+        hotelStars: Number(form.hotelStars) as Tour['hotelStars'],
         transport: form.transport,
         styleTags: [],
         groupSizeTags: [],
@@ -156,6 +160,20 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         </button>
       </div>
 
+      {notice && (
+        <div
+          role="status"
+          className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            notice.tone === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'
+          }`}
+        >
+          <span>{notice.text}</span>
+          <button onClick={onDismissNotice} aria-label="Đóng thông báo" className="shrink-0 font-bold opacity-60 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-soft">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
@@ -173,8 +191,11 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
               <tr key={t.id} className={t.hidden ? 'opacity-50' : ''}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <img src={t.coverImage} alt={t.name} className="h-10 w-14 shrink-0 rounded-lg object-cover" />
-                    <span className="line-clamp-1 max-w-[220px] font-semibold text-slate-800">{t.name}</span>
+                    <img src={t.coverImage} alt={t.name} onError={onImageError} className="h-10 w-14 shrink-0 rounded-lg object-cover" />
+                    <div className="min-w-0">
+                      <span className="line-clamp-1 max-w-[220px] font-semibold text-slate-800">{t.name}</span>
+                      {t.code && <span className="text-[11px] text-slate-400">{t.code}</span>}
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{t.destination}</td>
@@ -239,7 +260,8 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-semibold text-slate-500">Hạng khách sạn</span>
-                <select value={form.hotelStars} onChange={(e) => patchForm({ hotelStars: e.target.value as '3' | '4' | '5' })} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary">
+                <select value={form.hotelStars} onChange={(e) => patchForm({ hotelStars: e.target.value as TourFormState['hotelStars'] })} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary">
+                  <option value="0">Không xếp sao</option>
                   <option value="3">3 sao</option>
                   <option value="4">4 sao</option>
                   <option value="5">5 sao</option>

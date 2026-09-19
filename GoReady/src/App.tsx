@@ -76,7 +76,11 @@ function App() {
   const { tourId, openTour, closeTour } = useTourRoute();
 
   // Every tour that can be opened, saved or booked: tours served by the API + "Gợi ý chuyến đi" tours from the sheet
-  const allTours = React.useMemo(() => [...tours, ...suggestedTours], [tours, suggestedTours]);
+  const allTours = React.useMemo(() => {
+    const seen = new Set<string>();
+    // Imported sheet tours exist in both lists: the database copy (editable by the admin) wins
+    return [...tours, ...suggestedTours].filter((t) => !seen.has(t.id) && seen.add(t.id));
+  }, [tours, suggestedTours]);
   // Direct links never open a tour the admin has hidden
   const activeTour = React.useMemo(
     () => (tourId ? allTours.find((t) => !t.hidden && t.id.toLowerCase() === tourId.toLowerCase()) ?? null : null),
@@ -116,7 +120,13 @@ function App() {
 
   const patchFilters = (patch: Partial<SearchFilterState>) => setFilters((f) => ({ ...f, ...patch }));
 
-  const visibleTours = React.useMemo(() => tours.filter((t) => !t.hidden), [tours]);
+  // Tours imported from the sheet (they carry a `code`) are shown in "Gợi ý chuyến đi", not repeated in the main list
+  const visibleTours = React.useMemo(() => tours.filter((t) => !t.hidden && !t.code), [tours]);
+  // "Gợi ý chuyến đi" still reads the sheet, so honour the admin hiding an imported tour
+  const visibleSuggested = React.useMemo(() => {
+    const hiddenIds = new Set(tours.filter((t) => t.hidden).map((t) => t.id));
+    return suggestedTours.filter((t) => !hiddenIds.has(t.id));
+  }, [tours, suggestedTours]);
 
   const filteredTours = React.useMemo(() => {
     let list = visibleTours.filter((t) => {
@@ -315,7 +325,7 @@ function App() {
       ) : view === 'home' ? (
         <>
           <HeroSearch filters={filters} onChange={patchFilters} onSearch={() => goToExplore(filters.destination)} />
-          <SuggestedTours tours={suggestedTours} status={suggestedStatus} onRetry={reloadSuggested} onOpenTour={(t) => openTour(t.id)} />
+          <SuggestedTours tours={visibleSuggested} status={suggestedStatus} onRetry={reloadSuggested} onOpenTour={(t) => openTour(t.id)} />
           <section className="container-px mx-auto py-8">
             <div className="mb-5 flex items-center justify-between">
               <h2 className="font-heading text-xl font-bold text-slate-900">Tour nổi bật</h2>

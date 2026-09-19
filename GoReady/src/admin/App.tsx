@@ -84,6 +84,11 @@ function App() {
     await api.toggleTourHidden(tourId);
     refreshTours();
   };
+  // Sets (not toggles) the flag, so a repeated request is harmless. Throws when the request fails: the caller rolls back
+  const handleSetFeatured = async (tourId: string, isFeatured: boolean) => {
+    await api.updateTour(tourId, { isFeatured });
+    await refreshTours();
+  };
 
   const handleChangeBookingStatus = async (bookingId: string, status: BookingStatus) => {
     await api.updateBookingStatus(bookingId, status);
@@ -99,7 +104,7 @@ function App() {
     <AdminLayout page={page} onNavigate={setPage} adminName={adminUser.name} onLogout={() => setAdminEmail('')}>
       {page === 'dashboard' && <Dashboard tours={tours} bookings={bookings} users={users} />}
       {page === 'tours' && (
-        <TourManagement tours={tours} onAdd={handleAddTour} onUpdate={handleUpdateTour} onDelete={handleDeleteTour} onToggleHidden={handleToggleHidden}
+        <TourManagement tours={tours} onAdd={handleAddTour} onUpdate={handleUpdateTour} onDelete={handleDeleteTour} onToggleHidden={handleToggleHidden} onSetFeatured={handleSetFeatured}
           notice={sheetNotice}
           onDismissNotice={() => setSheetNotice(null)}
         />

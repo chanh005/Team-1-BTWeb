@@ -11,6 +11,8 @@ interface TourManagementProps {
   onUpdate: (tour: Tour) => void;
   onDelete: (tourId: string) => void;
   onToggleHidden: (tourId: string) => void;
+  /** Saves the "Tour nổi bật" flag; must reject when the request fails so the switch can roll back. */
+  onSetFeatured: (tourId: string, isFeatured: boolean) => Promise<void>;
   /** One-off message from the app, e.g. that the Google Sheet tours were just added. */
   notice?: { tone: 'ok' | 'warn'; text: string } | null;
   onDismissNotice?: () => void;
@@ -29,6 +31,7 @@ type TourFormState = {
   hotelStars: '0' | '3' | '4' | '5'; // 0 = không xếp sao (tour nhập từ Google Sheet có thể không ghi hạng)
   transport: string;
   shortDescription: string;
+  isFeatured: boolean;
 };
 
 const EMPTY_FORM: TourFormState = {
@@ -44,6 +47,7 @@ const EMPTY_FORM: TourFormState = {
   hotelStars: '4',
   transport: 'Máy bay + Xe đưa đón',
   shortDescription: '',
+  isFeatured: false,
 };
 
 const DEFAULT_COVER = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=800&fit=crop&q=80';
@@ -66,10 +70,14 @@ const tourToForm = (t: Tour): TourFormState => ({
   hotelStars: String(t.hotelStars) as TourFormState['hotelStars'],
   transport: t.transport,
   shortDescription: t.shortDescription,
+  isFeatured: Boolean(t.isFeatured),
 });
 
-const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate, onDelete, onToggleHidden, notice, onDismissNotice }) => {
+const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate, onDelete, onToggleHidden, onSetFeatured, notice, onDismissNotice }) => {
   const [query, setQuery] = React.useState('');
+  // Featured switch: the value the admin just picked, shown at once while the request is in flight
+  const [pendingFeatured, setPendingFeatured] = React.useState<Record<string, boolean>>({});
+  const [featuredError, setFeaturedError] = React.useState<string | null>(null);
   const [editingTour, setEditingTour] = React.useState<Tour | null>(null);
   const [showForm, setShowForm] = React.useState(false);
   const [form, setForm] = React.useState<TourFormState>(EMPTY_FORM);
@@ -111,6 +119,22 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
   };
 
   const patchForm = (patch: Partial<TourFormState>) => setForm((f) => ({ ...f, ...patch }));
+
+  const isFeatured = (t: Tour) => pendingFeatured[t.id] ?? Boolean(t.isFeatured);
+
+  // Optimistic: flips immediately; if the request fails the pending value is dropped, which shows the saved value again
+  const toggleFeatured = async (t: Tour) => {
+    const next = !isFeatured(t);
+    setFeaturedError(null);
+    setPendingFeatured((p) => ({ ...p, [t.id]: next }));
+    try {
+      await onSetFeatured(t.id, next);
+    } catch (err) {
+      setFeaturedError(`Không thể ${next ? 'bật' : 'tắt'} nổi bật cho "${t.name}"${err instanceof Error && err.message ? `: ${err.message}` : ''}. Đã hoàn tác.`);
+    } finally {
+      setPendingFeatured(({ [t.id]: _done, ...rest }) => rest);
+    }
+  };
 
   const addImages = (urls: string[]) =>
     setForm((f) => ({ ...f, images: [...f.images, ...urls.filter((url) => !f.images.includes(url))].slice(0, MAX_IMAGES) }));
@@ -189,6 +213,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         hotelStars: Number(form.hotelStars) as Tour['hotelStars'],
         transport: form.transport,
         shortDescription: form.shortDescription,
+        isFeatured: form.isFeatured,
       });
     } else {
       const newTour: Tour = {
@@ -221,6 +246,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         highlights: [],
         cancellationPolicy: 'Hoàn 100% nếu huỷ trước 7 ngày khởi hành.',
         route: [],
+        isFeatured: form.isFeatured,
       };
       onAdd(newTour);
     }
@@ -258,14 +284,24 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         </div>
       )}
 
+      {featuredError && (
+        <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{featuredError}</span>
+          <button onClick={() => setFeaturedError(null)} aria-label="Đóng thông báo" className="shrink-0 font-bold opacity-60 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-soft">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3">Tour</th>
               <th className="px-4 py-3">Điểm đến</th>
               <th className="px-4 py-3">Giá</th>
               <th className="px-4 py-3">Đánh giá</th>
+              <th className="px-4 py-3">Nổi bật</th>
               <th className="px-4 py-3">Trạng thái</th>
               <th className="px-4 py-3 text-right">Thao tác</th>
             </tr>
@@ -285,6 +321,20 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
                 <td className="px-4 py-3 text-slate-600">{t.destination}</td>
                 <td className="px-4 py-3 font-semibold text-primary-700">{formatVND(t.discountPrice ?? t.price)}</td>
                 <td className="px-4 py-3 text-slate-600">★ {t.rating.toFixed(1)}</td>
+                <td className="px-4 py-3">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isFeatured(t)}
+                    aria-label={`Tour nổi bật: ${t.name}`}
+                    title={t.hidden ? 'Tour đang ẩn nên chưa hiện ở trang người dùng, dù đã đánh dấu nổi bật' : 'Bật/tắt tour nổi bật trên trang chủ'}
+                    disabled={t.id in pendingFeatured}
+                    onClick={() => toggleFeatured(t)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:cursor-wait ${isFeatured(t) ? 'bg-primary' : 'bg-slate-200'}`}
+                  >
+                    <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isFeatured(t) ? 'translate-x-5' : ''}`} />
+                  </button>
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => onToggleHidden(t.id)}
@@ -309,7 +359,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-400">
                   Không tìm thấy tour phù hợp.
                 </td>
               </tr>
@@ -449,6 +499,11 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
               <label className="col-span-2 flex flex-col gap-1">
                 <span className="text-xs font-semibold text-slate-500">Mô tả ngắn</span>
                 <textarea value={form.shortDescription} onChange={(e) => patchForm({ shortDescription: e.target.value })} rows={2} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
+              </label>
+              <label className="col-span-2 flex items-center gap-2.5">
+                <input type="checkbox" checked={form.isFeatured} onChange={(e) => patchForm({ isFeatured: e.target.checked })} className="h-4 w-4 rounded border-slate-300 accent-primary" />
+                <span className="text-sm font-semibold text-slate-700">Tour nổi bật</span>
+                <span className="text-xs text-slate-400">Hiện ở mục "Tour nổi bật" trên trang chủ (khi tour đang hiện)</span>
               </label>
             </div>
             <div className="mt-5 flex justify-end gap-3">

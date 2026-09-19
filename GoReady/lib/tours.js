@@ -11,7 +11,7 @@ const COLUMNS = [
   'id', 'slug', 'name', 'destination', 'country', 'region', 'coverImage', 'gallery', 'shortDescription', 'description',
   'price', 'discountPrice', 'duration', 'nights', 'departure', 'hotelStars', 'transport', 'styleTags', 'groupSizeTags',
   'rating', 'reviewCount', 'bookingCount', 'itinerary', 'includes', 'excludes', 'reviews', 'highlights',
-  'cancellationPolicy', 'route', 'hidden', ...SHEET_FIELDS,
+  'cancellationPolicy', 'route', 'hidden', 'isFeatured', ...SHEET_FIELDS,
 ];
 
 function serialize(row) {
@@ -59,6 +59,7 @@ export async function createTour(pool, body) {
     cancellationPolicy: body.cancellationPolicy ?? 'Hoàn 100% nếu huỷ trước 7 ngày khởi hành.',
     route: body.route ?? [],
     hidden: body.hidden ?? false,
+    isFeatured: body.isFeatured ?? false,
     code: body.code ?? null,
     durationLabel: body.durationLabel ?? null,
     childPrice: body.childPrice ?? null,

@@ -31,6 +31,7 @@ type TourFormState = {
   hotelStars: '0' | '3' | '4' | '5'; // 0 = không xếp sao (tour nhập từ Google Sheet có thể không ghi hạng)
   transport: string;
   shortDescription: string;
+  highlights: string;
   isFeatured: boolean;
 };
 
@@ -47,6 +48,7 @@ const EMPTY_FORM: TourFormState = {
   hotelStars: '4',
   transport: 'Máy bay + Xe đưa đón',
   shortDescription: '',
+  highlights: '',
   isFeatured: false,
 };
 
@@ -70,6 +72,7 @@ const tourToForm = (t: Tour): TourFormState => ({
   hotelStars: String(t.hotelStars) as TourFormState['hotelStars'],
   transport: t.transport,
   shortDescription: t.shortDescription,
+  highlights: (t.highlights || []).join('\n'),
   isFeatured: Boolean(t.isFeatured),
 });
 
@@ -196,6 +199,10 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
     // First image = cover. With no images the tour keeps the cover it already had
     const coverImage = form.images[0] || editingTour?.coverImage || DEFAULT_COVER;
     const gallery = form.images.slice(1);
+    const highlights = form.highlights
+      .split('\n')
+      .map((h) => h.trim())
+      .filter(Boolean);
 
     if (editingTour) {
       onUpdate({
@@ -213,6 +220,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         hotelStars: Number(form.hotelStars) as Tour['hotelStars'],
         transport: form.transport,
         shortDescription: form.shortDescription,
+        highlights,
         isFeatured: form.isFeatured,
       });
     } else {
@@ -243,7 +251,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         includes: [],
         excludes: [],
         reviews: [],
-        highlights: [],
+        highlights,
         cancellationPolicy: 'Hoàn 100% nếu huỷ trước 7 ngày khởi hành.',
         route: [],
         isFeatured: form.isFeatured,
@@ -499,6 +507,16 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
               <label className="col-span-2 flex flex-col gap-1">
                 <span className="text-xs font-semibold text-slate-500">Mô tả ngắn</span>
                 <textarea value={form.shortDescription} onChange={(e) => patchForm({ shortDescription: e.target.value })} rows={2} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
+              </label>
+              <label className="col-span-2 flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Điểm nổi bật (mỗi dòng một ý)</span>
+                <textarea
+                  value={form.highlights}
+                  onChange={(e) => patchForm({ highlights: e.target.value })}
+                  rows={3}
+                  placeholder="Nhập các điểm nổi bật của tour, mỗi dòng một ý..."
+                  className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary"
+                />
               </label>
               <label className="col-span-2 flex items-center gap-2.5">
                 <input type="checkbox" checked={form.isFeatured} onChange={(e) => patchForm({ isFeatured: e.target.checked })} className="h-4 w-4 rounded border-slate-300 accent-primary" />

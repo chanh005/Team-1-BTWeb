@@ -39,6 +39,13 @@ const CREATE_SQL = `
     hidden BOOLEAN DEFAULT FALSE
   );
 
+  CREATE TABLE IF NOT EXISTS images (
+    id TEXT PRIMARY KEY,
+    mime TEXT NOT NULL,
+    data BYTEA NOT NULL,
+    "createdAt" TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS bookings (
     id TEXT PRIMARY KEY,
     "bookingCode" TEXT,

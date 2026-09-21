@@ -5,7 +5,7 @@ import type { Departure, DepartureLeg, DeparturePrices, Tour, TransportKind } fr
 //
 // File tour (PDF/Sheet) chỉ có giá, lịch trình và phương tiện chung — không có lịch đoàn cụ thể.
 // Lịch đoàn được dựng ở đây từ chính dữ liệu của tour, và luôn LĂN THEO NGÀY HÔM NAY
-// (từ ngày mai đến hết tháng thứ 3), nên không bao giờ hết hạn.
+// (từ 2 ngày nữa đến hết tháng thứ 6), nên không bao giờ hết hạn.
 //
 // ⚠ Số hiệu chuyến bay, hãng, giờ bay và số chỗ còn là DỮ LIỆU MẪU, sinh ổn định từ mã tour + ngày.
 //   Khi có lịch thật, thay `buildDepartures()` (hoặc đọc từ API) — giao diện chỉ dùng kiểu `Departure`.
@@ -13,8 +13,13 @@ import type { Departure, DepartureLeg, DeparturePrices, Tour, TransportKind } fr
 
 /** Số ngày tối thiểu từ hôm nay đến ngày đoàn khởi hành đầu tiên. */
 const MIN_LEAD_DAYS = 2;
-/** Lịch hiển thị: tháng hiện tại + N tháng tiếp theo. */
-const MONTHS_AHEAD = 2;
+/** Lịch hiển thị: tháng hiện tại + N tháng tiếp theo (tổng cộng 6 tháng). */
+const MONTHS_AHEAD = 5;
+/** Các thứ trong tuần đoàn khởi hành (0 = CN): thứ Tư, thứ Bảy, hoặc cả hai — mỗi tour một kiểu cố định. */
+const SCHEDULE_PATTERNS: readonly (readonly number[])[] = [[3], [6], [3, 6]];
+/** Sức chứa mỗi đoàn nằm trong khoảng này. */
+const MIN_SEATS = 20;
+const MAX_SEATS = 30;
 /** Phụ thu phòng đơn ước tính = tỉ lệ này × giá người lớn (làm tròn 10.000đ), chỉ áp dụng tour có đêm lưu trú. */
 const SINGLE_ROOM_RATE = 0.3;
 
@@ -291,24 +296,35 @@ export const getChildPolicy = (tour: Tour): ChildPolicy => {
   return { childRange: '', freeRange: '' };
 };
 
+/** Phụ thu phòng đơn của tour; `undefined` nếu tour không có đêm lưu trú. */
+export const singleRoomPrice = (tour: Tour): number | undefined =>
+  tour.nights > 0 ? Math.round(((tour.discountPrice ?? tour.price) * SINGLE_ROOM_RATE) / 10000) * 10000 : undefined;
+
 const pricesFor = (tour: Tour): DeparturePrices => {
-  const adult = tour.discountPrice ?? tour.price;
   const policy = getChildPolicy(tour);
   return {
-    adult,
+    adult: tour.discountPrice ?? tour.price,
     child: tour.childPrice,
     childRange: policy.childRange,
     freeRange: policy.freeRange,
-    singleRoom: tour.nights > 0 ? Math.round((adult * SINGLE_ROOM_RATE) / 10000) * 10000 : undefined,
+    singleRoom: singleRoomPrice(tour),
   };
 };
 
 // ---------------------------------------------------------------------------
 // Sức chứa & số chỗ còn
 // ---------------------------------------------------------------------------
-const capacityOf = (tour: Tour): number => {
-  const seats = Number(tour.transport.match(/(\d+)\s*chỗ/i)?.[1]);
-  return seats > 0 ? seats : 20;
+/** Sức chứa tối đa của một đoàn: 20-30 chỗ, cố định theo mã tour + ngày. */
+const maxSeatsOf = (seed: number): number => MIN_SEATS + ((seed >>> 4) % (MAX_SEATS - MIN_SEATS + 1));
+
+/**
+ * Số chỗ còn của đoàn thứ `index` trong lịch, đan xen đều để dễ thử giao diện:
+ * cứ ~9 đoàn có 1 đoàn đã hết vé (0), khoảng 1/4 đoàn sắp hết (1-4 chỗ), còn lại còn từ 5 chỗ đến kín sức chứa.
+ */
+const availableSeatsOf = (index: number, maxSeats: number, seed: number): number => {
+  if (index % 9 === 4) return 0;
+  if (index % 4 === 1) return 1 + ((seed >>> 9) % 4);
+  return 5 + ((seed >>> 9) % (maxSeats - 4));
 };
 
 // ---------------------------------------------------------------------------
@@ -324,22 +340,22 @@ const departureCode = (tour: Tour, date: string, kind: TransportKind, leg: Depar
 
 /**
  * Lịch khởi hành của đoàn cho một tour, sắp theo ngày tăng dần.
- * Mỗi tour chạy mỗi tuần vào một thứ cố định (tuỳ mã tour) trong khoảng từ hôm nay đến hết tháng thứ 3.
+ * Mỗi tuần 1-2 chuyến vào thứ Tư và/hoặc thứ Bảy (tuỳ mã tour), liên tục từ hôm nay đến hết tháng thứ 6 tính từ tháng hiện tại.
  */
 export const buildDepartures = (tour: Tour, today: Date = new Date()): Departure[] => {
   const route = ROUTES[normalize(tour.destination)] ?? FALLBACK_ROUTE;
   const kind = kindOf(tour, route);
-  const weekday = hash(tour.id) % 7;
-  const capacity = capacityOf(tour);
+  const weekdays = pick(SCHEDULE_PATTERNS, hash(tour.id));
+  // Lệch pha theo tour để các tour không hết vé / sắp hết vé cùng một ngày
+  const phase = hash(`${tour.id}|phase`) % 36;
   const prices = pricesFor(tour);
 
   const first = new Date(today.getFullYear(), today.getMonth(), today.getDate() + MIN_LEAD_DAYS);
   const last = new Date(today.getFullYear(), today.getMonth() + MONTHS_AHEAD + 1, 0);
-  // Chuyển đến đúng thứ khởi hành của tour
-  first.setDate(first.getDate() + ((weekday - first.getDay() + 7) % 7));
 
   const departures: Departure[] = [];
-  for (const d = new Date(first); d <= last; d.setDate(d.getDate() + 7)) {
+  for (const d = new Date(first); d <= last; d.setDate(d.getDate() + 1)) {
+    if (!weekdays.includes(d.getDay())) continue;
     const date = toDateString(d);
     const returnDate = addDays(date, Math.max(tour.duration - 1, 0));
     const seed = hash(`${tour.id}|${date}`);
@@ -351,9 +367,7 @@ export const buildDepartures = (tour: Tour, today: Date = new Date()): Departure
           ? localLegs(tour, date, returnDate)
           : roadLegs(tour, route, kind, date, returnDate, seed);
 
-    // Khoảng 1/10 đoàn đã kín chỗ; còn lại còn từ 2 chỗ đến gần hết sức chứa
-    const soldOut = seed % 10 === 0;
-    const seatsLeft = soldOut ? 0 : 2 + ((seed >>> 9) % Math.max(capacity - 1, 1));
+    const maxSeats = maxSeatsOf(seed);
 
     departures.push({
       id: departureCode(tour, date, kind, outbound),
@@ -361,7 +375,8 @@ export const buildDepartures = (tour: Tour, today: Date = new Date()): Departure
       returnDate,
       kind,
       departFrom: kind === 'local' ? tour.destination : route.origin.city,
-      seatsLeft: Math.min(seatsLeft, capacity),
+      maxSeats,
+      availableSeats: availableSeatsOf(departures.length + phase, maxSeats, seed),
       legs: [outbound, inbound],
       prices,
     });

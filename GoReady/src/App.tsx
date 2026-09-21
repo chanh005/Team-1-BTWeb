@@ -24,6 +24,7 @@ import { mergeSuggestedTours } from './services/suggestedTours';
 import { useTourRoute } from './hooks/useTourRoute';
 import { pushExplore, readExploreParams, replaceExploreParams, type ExploreParams } from './hooks/useExploreRoute';
 import { buildDepartures, formatDMY } from './data/departures';
+import { returnSeats } from './services/seatInventory';
 import { api } from './api';
 import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, SearchFilterState, Tour, UserReview } from './types';
 import { uid } from './utils/format';
@@ -140,7 +141,7 @@ function App() {
     let list = exploreTours.filter((t) => {
       if (!matchesDestination(t, appliedDestination)) return false;
       // Departures are the rolling schedule shown on the tour page: keep tours with a group that still has seats on/after the date
-      if (filters.dateFrom && !buildDepartures(t).some((d) => d.date >= filters.dateFrom && d.seatsLeft > 0)) return false;
+      if (filters.dateFrom && !buildDepartures(t).some((d) => d.date >= filters.dateFrom && d.availableSeats > 0)) return false;
       // Tours without group tags (all sheet tours) do not restrict who can join, so they stay in the list
       if (filters.groupSize !== 'all' && t.groupSizeTags.length > 0 && !t.groupSizeTags.includes(filters.groupSize)) return false;
       if (filters.styles.length > 0 && !filters.styles.some((s) => t.styleTags.includes(s))) return false;
@@ -325,7 +326,10 @@ function App() {
   };
 
   const handleCancelBooking = async (bookingId: string) => {
+    const cancelled = bookings.find((b) => b.id === bookingId);
     await api.updateBookingStatus(bookingId, 'cancelled');
+    // A cancelled booking gives its seats back to the departure
+    if (cancelled?.departureCode && cancelled.status !== 'cancelled') returnSeats(cancelled.departureCode, cancelled.adults + cancelled.children).catch(() => {});
     refreshBookings();
     notify('Đã hủy tour. Yêu cầu hoàn tiền của bạn đang được xử lý.');
   };

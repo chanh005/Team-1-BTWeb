@@ -132,19 +132,52 @@ export interface Departure {
   returnDate: string;
   kind: TransportKind;
   departFrom: string;
-  seatsLeft: number;
+  /** Sức chứa tối đa của đoàn. */
+  maxSeats: number;
+  /** Số chỗ còn lại. Từ `buildDepartures` là số chỗ ban đầu; qua `useLiveDepartures` là số chỗ hiện tại sau khi trừ các booking. */
+  availableSeats: number;
   legs: [DepartureLeg, DepartureLeg];
   prices: DeparturePrices;
 }
+
+/** Trạng thái một suất khởi hành sau khi tính số chỗ đã bán và người đang giữ chỗ. */
+export type SeatStatus = 'available' | 'holding' | 'sold-out';
+
+/** `Departure` kèm tồn kho thời gian thực: `availableSeats` đã trừ số chỗ đã bán. */
+export interface LiveDeparture extends Departure {
+  status: SeatStatus;
+  /** Chính khách này đang giữ chỗ (khác với "người khác đang giữ"). */
+  heldByMe: boolean;
+  /** Mốc hết hạn giữ chỗ (ms epoch) khi `status === 'holding'` hoặc `heldByMe`. */
+  holdExpiresAt?: number;
+}
+
+/** Một ngày khởi hành như backend lưu: chỗ tối đa, chỗ còn lại và (nếu có) lượt giữ chỗ đang chạy. */
+export interface SeatRecord {
+  id: string;
+  maxSeats: number;
+  availableSeats: number;
+  status: SeatStatus;
+  /** Lượt giữ chỗ đang chạy là của chính khách gọi API. */
+  heldByMe: boolean;
+  /** Còn bao nhiêu ms nữa lượt giữ chỗ hết hạn (tính theo đồng hồ server, tránh lệch giờ với máy khách). */
+  holdRemainingMs?: number;
+}
+
+export type HoldResponse = { ok: true; ttlMs: number } | { ok: false; reason: 'held' | 'sold-out' | 'not-enough' };
 
 export interface AddOnService {
   id: string;
   label: string;
   description: string;
+  /** Đơn giá: theo khách (người lớn + trẻ em) hoặc theo booking. */
   price: number;
+  unit?: 'guest' | 'booking';
+  /** Số lượng đã áp dụng khi đặt (điền lúc tạo booking). */
+  quantity?: number;
 }
 
-export type PaymentMethod = 'vietqr' | 'momo' | 'card';
+export type PaymentMethod = 'vietqr' | 'momo' | 'vnpay' | 'card';
 export type BookingStatus = 'confirmed' | 'upcoming' | 'completed' | 'cancelled';
 
 export interface Booking {

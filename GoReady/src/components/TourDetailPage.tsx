@@ -1,8 +1,11 @@
 import React from 'react';
-import type { Departure, DepartureLeg, Tour } from '../types';
+import type { Departure, DepartureLeg, LiveDeparture, Tour } from '../types';
 import { buildDepartures, formatDMY, formatMonthTab, formatPillDate, monthKeyOf } from '../data/departures';
 import { discountPercent, formatVND } from '../utils/format';
 import { onImageError } from '../utils/image';
+import { useLiveDepartures } from '../hooks/useLiveDepartures';
+import { seatLabel } from '../utils/seats';
+import SeatBadge from './SeatBadge';
 
 interface TourDetailPageProps {
   tour: Tour;
@@ -25,8 +28,8 @@ type SectionId = (typeof SECTIONS)[number][0];
 
 const sectionDomId = (id: SectionId) => `tour-${id}`;
 
-/** The group shown as "Đang chọn" by default: the soonest departure that still has seats. */
-const firstOpen = (departures: Departure[]): Departure | undefined => departures.find((d) => d.seatsLeft > 0);
+/** The group shown as "Đang chọn" by default: the soonest departure that can be booked right now (has seats, nobody holding it). */
+const firstOpen = (departures: LiveDeparture[]): LiveDeparture | undefined => departures.find((d) => d.status === 'available');
 
 const monthOf = (d?: Departure): string => (d ? monthKeyOf(d.date) : '');
 
@@ -57,7 +60,6 @@ const AIRLINE_STYLE: Record<string, string> = {
 
 const LEG_ICON = { flight: '✈', limousine: '🚐', coach: '🚌', local: '🚌' } as const;
 
-const seatLabel = (d: Departure) => (d.seatsLeft > 0 ? `Còn ${d.seatsLeft} chỗ` : 'Hết chỗ');
 
 const LegBlock: React.FC<{ leg: DepartureLeg; className?: string }> = ({ leg, className = '' }) => {
   const isFlight = leg.kind === 'flight';
@@ -117,8 +119,10 @@ const PriceRow: React.FC<{ name: string; note?: string; children: React.ReactNod
   </div>
 );
 
-const DepartureCard: React.FC<{ departure: Departure; selected: boolean; onSelect: () => void }> = ({ departure: d, selected, onSelect }) => {
-  const soldOut = d.seatsLeft === 0;
+const DepartureCard: React.FC<{ departure: LiveDeparture; selected: boolean; onSelect: () => void }> = ({ departure: d, selected, onSelect }) => {
+  const soldOut = d.status === 'sold-out';
+  const holding = d.status === 'holding';
+  const locked = soldOut || holding;
   const { prices } = d;
   const [outbound, inbound] = d.legs;
   const adultNote = prices.childRange.includes('tuổi') ? 'Từ 12 tuổi trở lên' : undefined;
@@ -127,34 +131,41 @@ const DepartureCard: React.FC<{ departure: Departure; selected: boolean; onSelec
   return (
     <div
       className={`rounded-2xl border bg-white p-4 transition sm:p-5 ${selected ? 'border-primary shadow-card' : 'border-slate-200'} ${
-        soldOut ? 'opacity-70' : ''
+        locked ? 'opacity-70' : ''
       }`}
     >
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-primary-700">{formatPillDate(d.date)}</span>
           <span className="text-xs font-semibold text-slate-600 sm:text-sm">🎫 {d.id}</span>
+          {locked && <SeatBadge departure={d} />}
         </div>
         <button
           onClick={onSelect}
-          disabled={soldOut || selected}
+          disabled={locked || selected}
           aria-pressed={selected}
           className={`rounded-full px-5 py-2.5 text-sm font-bold transition ${
             selected
               ? 'bg-primary-700 text-white'
-              : soldOut
+              : locked
                 ? 'cursor-not-allowed bg-slate-100 text-slate-400'
                 : 'border border-primary text-primary hover:bg-primary-50'
           }`}
         >
-          {selected ? 'Đang chọn' : soldOut ? 'Hết chỗ' : 'Chọn'}
+          {selected ? 'Đang chọn' : soldOut ? 'Đã hết vé' : holding ? 'Hết chỗ' : 'Chọn'}
         </button>
       </div>
 
       {!selected && (
         <p className="mt-3 text-xs text-slate-500">
           {isShort ? `Trong ngày · ${outbound.departTime}` : `${formatDMY(d.date)} → ${formatDMY(d.returnDate)}`} · {LEG_ICON[d.kind]}{' '}
-          {d.kind === 'flight' ? `${outbound.operator} ${outbound.code}` : outbound.operator} · <span className={d.seatsLeft <= 4 ? 'font-semibold text-rose-500' : ''}>{seatLabel(d)}</span>
+          {d.kind === 'flight' ? `${outbound.operator} ${outbound.code}` : outbound.operator}
+          {!locked && (
+            <>
+              {' '}
+              · <SeatBadge departure={d} className="align-middle" />
+            </>
+          )}
         </p>
       )}
 
@@ -278,7 +289,8 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
   const [activeImage, setActiveImage] = React.useState(0);
   const [lightbox, setLightbox] = React.useState(false);
   const [activeSection, setActiveSection] = React.useState<SectionId>('info');
-  const departures = React.useMemo(() => buildDepartures(tour), [tour]);
+  const baseDepartures = React.useMemo(() => buildDepartures(tour), [tour]);
+  const { departures, ready: seatsReady } = useLiveDepartures(baseDepartures);
   const [departureId, setDepartureId] = React.useState(() => firstOpen(departures)?.id ?? '');
   const [month, setMonth] = React.useState(() => monthOf(firstOpen(departures) ?? departures[0]));
   const [openDays, setOpenDays] = React.useState<Set<number>>(() => new Set(tour.itinerary.slice(0, 1).map((d) => d.day)));
@@ -301,6 +313,16 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
     setActiveSection('info');
     setOpenDays(new Set(tour.itinerary.slice(0, 1).map((d) => d.day)));
   }, [tour.id]);
+
+  // Once the real seat counts arrive, move off a default pick that turned out to be held by someone else / sold out
+  React.useEffect(() => {
+    if (!seatsReady) return;
+    if (departures.find((d) => d.id === departureId)?.status === 'available') return;
+    const open = firstOpen(departures);
+    if (!open) return;
+    setDepartureId(open.id);
+    setMonth(monthOf(open));
+  }, [seatsReady]);
 
   // Highlight the nav tab of the section currently under the sticky bars
   React.useEffect(() => {
@@ -353,7 +375,9 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
   };
 
   const monthDepartures = departures.filter((d) => monthKeyOf(d.date) === month);
-  const canBook = departures.length === 0 || (selected !== null && selected.seatsLeft > 0);
+  // A group someone else is holding, or one that is sold out, cannot be booked
+  const canBook = departures.length === 0 || (selected !== null && selected.status === 'available');
+  const bookLabel = canBook ? 'Đặt ngay' : selected?.status === 'holding' ? 'Hết chỗ' : 'Đã hết vé';
 
   const highlightChips = [
     tour.category,
@@ -488,7 +512,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
                 disabled={!canBook}
                 className="mt-4 w-full rounded-full bg-primary py-3.5 text-sm font-bold text-white shadow-card transition hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
               >
-                {canBook ? 'Đặt ngay' : 'Đã hết chỗ'}
+                {bookLabel}
               </button>
             </div>
           </aside>
@@ -642,7 +666,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
           disabled={!canBook}
           className="rounded-full bg-primary px-8 py-3 text-sm font-bold text-white shadow-card hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none"
         >
-          {canBook ? 'Đặt ngay' : 'Đã hết chỗ'}
+          {bookLabel}
         </button>
       </div>
 

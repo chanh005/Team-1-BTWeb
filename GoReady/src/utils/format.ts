@@ -18,10 +18,11 @@ export const discountPercent = (price: number, discountPrice?: number): number =
 
 export const uid = (prefix = 'id'): string => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+/** "GR-7K2M9" — bỏ các ký tự dễ nhầm (0/O, 1/I). */
 export const generateBookingCode = (): string => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = 'GR';
-  for (let i = 0; i < 6; i++) code += chars[Math.floor(Math.random() * chars.length)];
+  let code = 'GR-';
+  for (let i = 0; i < 5; i++) code += chars[Math.floor(Math.random() * chars.length)];
   return code;
 };
 

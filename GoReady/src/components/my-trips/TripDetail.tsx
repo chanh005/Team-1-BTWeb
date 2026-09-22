@@ -27,6 +27,8 @@ interface TripDetailProps {
   trip: ChuyenDi;
   phase: TripPhase;
   coverFallback?: string;
+  /** Tour's own "highlights" (điểm nổi bật), shown as a fallback when the trip's schedule has no attraction/food stop to list. */
+  tourHighlights?: string[];
   onBack: () => void;
   onRequestCancel?: (trip: ChuyenDi) => void;
 }
@@ -135,7 +137,7 @@ const TicketCard: React.FC<{ ve: Ve }> = ({ ve }) => {
   );
 };
 
-const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, onBack, onRequestCancel }) => {
+const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tourHighlights, onBack, onRequestCancel }) => {
   const days = React.useMemo(() => groupByDay(trip.lichTrinh), [trip.lichTrinh]);
   const legs = React.useMemo(() => travelLegs(trip.lichTrinh), [trip.lichTrinh]);
   const { sights, food } = React.useMemo(() => destinationsOf(trip.lichTrinh), [trip.lichTrinh]);
@@ -264,7 +266,20 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, onB
           {/* 3. Các điểm đến */}
           <Section id="diem-den" num={3} icon="📍" title="Các điểm đến" hint={`${sights.length} điểm tham quan${food.length ? ` · ${food.length} điểm ăn uống` : ''}`}>
             {sights.length === 0 && food.length === 0 ? (
-              <p className="text-sm text-slate-400">Chưa có danh sách điểm đến chi tiết cho chuyến đi này.</p>
+              tourHighlights && tourHighlights.length > 0 ? (
+                <div>
+                  <p className="mb-2.5 text-xs text-slate-400">Lịch trình chi tiết chưa sẵn sàng — dưới đây là các điểm nổi bật của tour:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {tourHighlights.map((item, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-3 py-1.5 text-xs font-semibold text-primary-700">
+                        <span aria-hidden>✦</span> {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">Chưa có danh sách điểm đến chi tiết cho chuyến đi này.</p>
+              )
             ) : (
               <div className="space-y-5">
                 {mapData.route.length > 0 && (

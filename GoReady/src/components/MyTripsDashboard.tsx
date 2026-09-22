@@ -116,6 +116,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
 
   const tourFor = (id: string) => tours.find((t) => t.id === id);
   const coverFor = (trip: ChuyenDi) => tourFor(trip.don.tourId)?.coverImage;
+  const highlightsFor = (trip: ChuyenDi) => tourFor(trip.don.tourId)?.highlights;
   const checkedCount = checklist.filter((c) => c.checked).length;
 
   const selected = selectedTripId ? entries.find((e) => e.trip.maChuyenDi === selectedTripId) ?? null : null;
@@ -148,6 +149,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
           trip={selected.trip}
           phase={selected.phase}
           coverFallback={coverFor(selected.trip)}
+          tourHighlights={highlightsFor(selected.trip)}
           onBack={() => setSelectedTripId(null)}
           onRequestCancel={requestCancel}
         />

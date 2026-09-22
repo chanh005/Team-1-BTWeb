@@ -1,4 +1,4 @@
-import type { AccountUser, Booking, BookingStatus, Departure, HoldResponse, SeatRecord, Tour } from './types';
+import type { AccountUser, Article, Booking, BookingStatus, Departure, HoldResponse, SeatRecord, Tour } from './types';
 
 // Relative path: in dev it's proxied to the local express server (vite.config.ts),
 // and on Vercel it resolves to the serverless functions under /api on the same origin.
@@ -28,6 +28,13 @@ export const api = {
 
   /** Stores a photo (JPEG/PNG/WebP/GIF data URL) and returns the URL to save in a tour's coverImage / gallery. */
   uploadImage: (dataUrl: string) => request<{ id: string; url: string }>('/images', { method: 'POST', body: JSON.stringify({ dataUrl }) }),
+
+  /** Bài đăng của Bảng tin (Tin tức / Cẩm nang du lịch), do admin biên tập. */
+  getArticles: () => request<Article[]>('/articles'),
+  createArticle: (article: Partial<Article>) => request<Article>('/articles', { method: 'POST', body: JSON.stringify(article) }),
+  updateArticle: (id: string, patch: Partial<Article>) => request<Article>(`/articles/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
+  toggleArticleHidden: (id: string) => request<Article>(`/articles/${id}/hidden`, { method: 'PATCH' }),
+  deleteArticle: (id: string) => request<void>(`/articles/${id}`, { method: 'DELETE' }),
 
   getBookings: () => request<Booking[]>('/bookings'),
   createBooking: (booking: Booking) => request<Booking>('/bookings', { method: 'POST', body: JSON.stringify(booking) }),

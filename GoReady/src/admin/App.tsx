@@ -5,11 +5,12 @@ import Dashboard from './components/Dashboard';
 import TourManagement from './components/TourManagement';
 import BookingManagement from './components/BookingManagement';
 import UserManagement from './components/UserManagement';
+import ArticleManagement from './components/ArticleManagement';
 import { api } from '../api';
 import { addSheetToursIfMissing } from './importSheetTours';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { usePolledResource } from '../hooks/usePolledResource';
-import type { BookingStatus, Tour } from '../types';
+import type { Article, BookingStatus, Tour } from '../types';
 
 function App() {
   const [adminEmail, setAdminEmail] = useLocalStorage<string>('goready_admin_email', '');
@@ -18,9 +19,11 @@ function App() {
   const { data: toursData, refresh: refreshTours } = usePolledResource(api.getTours);
   const { data: bookingsData, refresh: refreshBookings } = usePolledResource(api.getBookings);
   const { data: usersData, refresh: refreshUsers } = usePolledResource(api.getUsers);
+  const { data: articlesData, refresh: refreshArticles } = usePolledResource(api.getArticles);
   const tours = toursData ?? [];
   const bookings = bookingsData ?? [];
   const users = usersData ?? [];
+  const articles = articlesData ?? [];
 
   // First time only: the tours of the Google Sheet are added to the database by themselves, so they appear in
   // Quản lý Tour like any other tour (the rules are in addSheetToursIfMissing). Waits for the first tour list.
@@ -100,6 +103,23 @@ function App() {
     refreshUsers();
   };
 
+  const handleAddArticle = async (article: Article) => {
+    await api.createArticle(article);
+    refreshArticles();
+  };
+  const handleUpdateArticle = async (article: Article) => {
+    await api.updateArticle(article.id, article);
+    refreshArticles();
+  };
+  const handleDeleteArticle = async (articleId: string) => {
+    await api.deleteArticle(articleId);
+    refreshArticles();
+  };
+  const handleToggleArticleHidden = async (articleId: string) => {
+    await api.toggleArticleHidden(articleId);
+    refreshArticles();
+  };
+
   return (
     <AdminLayout page={page} onNavigate={setPage} adminName={adminUser.name} onLogout={() => setAdminEmail('')}>
       {page === 'dashboard' && <Dashboard tours={tours} bookings={bookings} users={users} />}
@@ -111,6 +131,16 @@ function App() {
       )}
       {page === 'bookings' && <BookingManagement bookings={bookings} tours={tours} onChangeStatus={handleChangeBookingStatus} />}
       {page === 'users' && <UserManagement users={users} onToggleStatus={handleToggleUserStatus} />}
+      {page === 'articles' && (
+        <ArticleManagement
+          articles={articles}
+          onAdd={handleAddArticle}
+          onUpdate={handleUpdateArticle}
+          onDelete={handleDeleteArticle}
+          onToggleHidden={handleToggleArticleHidden}
+          adminName={adminUser.name}
+        />
+      )}
     </AdminLayout>
   );
 }

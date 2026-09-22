@@ -257,6 +257,21 @@ export interface AccountUser {
   avatar?: string | null;
 }
 
+export type ArticleCategory = 'Tin tức' | 'Cẩm nang du lịch';
+
+export interface Article {
+  id: string;
+  slug: string;
+  title: string;
+  category: ArticleCategory;
+  coverImage: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  hidden?: boolean; // admin-only: ẩn bài viết khỏi Bảng tin
+  createdAt: string; // ISO date
+}
+
 export interface AiPlannerResult {
   destination: string;
   days: number;

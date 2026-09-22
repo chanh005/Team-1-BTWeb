@@ -77,6 +77,19 @@ const CREATE_SQL = `
     "pickupLocation" TEXT
   );
 
+  CREATE TABLE IF NOT EXISTS articles (
+    id TEXT PRIMARY KEY,
+    slug TEXT,
+    title TEXT,
+    category TEXT,
+    "coverImage" TEXT,
+    excerpt TEXT,
+    content TEXT,
+    author TEXT,
+    hidden BOOLEAN DEFAULT FALSE,
+    "createdAt" TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT,

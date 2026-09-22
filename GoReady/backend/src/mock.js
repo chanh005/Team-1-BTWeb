@@ -16,7 +16,14 @@ const seed = (name) => JSON.parse(readFileSync(join(seedDir, `${name}.json`), 'u
 let tours = seed('tours');
 let bookings = seed('bookings');
 let users = seed('users');
+let articles = [];
 const images = new Map();
+
+// Giống ensureAdminAccount trong lib/schema.js
+users.push({
+  id: 'usr-admin', name: 'Quản trị viên', email: 'admin@goready.vn', phone: '', joinedAt: new Date().toISOString().slice(0, 10),
+  totalBookings: 0, status: 'active', role: 'admin', password_hash: bcrypt.hashSync('GoReady@2025!', 10),
+});
 
 // Cột của tour chỉ có ở tour nhập từ Google Sheet: bỏ khỏi JSON khi rỗng (giống lib/tours.js)
 const SHEET_FIELDS = ['code', 'durationLabel', 'childPrice', 'category', 'keywords'];
@@ -72,6 +79,137 @@ app.patch('/api/tours/:id/hidden', (req, res) => {
 
 app.delete('/api/tours/:id', (req, res) => {
   tours = tours.filter((t) => t.id !== req.params.id);
+  res.status(204).end();
+});
+
+// --- Articles (Bảng tin) --- (same rules as lib/articles.js)
+let comments = []; // { id, articleId, userId, content, hidden, createdAt }
+let ratings = []; // { articleId, userId, rating, createdAt }
+
+const ratingSummary = (articleId, userId) => {
+  const list = ratings.filter((r) => r.articleId === articleId);
+  const ratingAvg = list.length ? list.reduce((s, r) => s + r.rating, 0) / list.length : 0;
+  const myRating = list.find((r) => r.userId === userId)?.rating ?? null;
+  return { ratingAvg, ratingCount: list.length, myRating };
+};
+const withStats = (a) => {
+  const { ratingAvg, ratingCount } = ratingSummary(a.id);
+  return { ...a, ratingAvg, ratingCount, commentCount: comments.filter((c) => c.articleId === a.id && !c.hidden).length };
+};
+const withAuthor = (c) => ({
+  ...c,
+  userName: users.find((u) => u.id === c.userId)?.name ?? null,
+  userRating: ratings.find((r) => r.articleId === c.articleId && r.userId === c.userId)?.rating ?? null,
+  articleTitle: articles.find((a) => a.id === c.articleId)?.title ?? null,
+});
+const publishDate = (a) => String(a.publishAt ?? a.createdAt);
+const isPublic = (a, now) => !a.hidden && a.status === 'published' && (!a.publishAt || a.publishAt <= now);
+// Không cho PUT ghi đè lượt xem / số liệu tổng hợp
+const ARTICLE_READONLY = ['views', 'ratingAvg', 'ratingCount', 'commentCount'];
+const withoutReadonly = (body) => Object.fromEntries(Object.entries(body).filter(([k]) => !ARTICLE_READONLY.includes(k)));
+// Mirrors requireActiveUser/requireArticle in lib/articles.js; answers the request and returns false on failure
+const checkFeedback = (req, res, userId) => {
+  if (!articles.some((a) => a.id === req.params.id)) return res.status(404).json({ error: 'Article not found' }) && false;
+  const user = users.find((u) => u.id === userId);
+  if (!user) return res.status(404).json({ error: 'User not found' }) && false;
+  if (user.status === 'locked') return res.status(403).json({ error: 'locked' }) && false;
+  return true;
+};
+
+app.get('/api/articles', (req, res) => {
+  const now = new Date().toISOString();
+  const list = req.query.public === '1' ? articles.filter((a) => isPublic(a, now)) : articles;
+  res.json(
+    list
+      .map(withStats)
+      .sort((a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)) || publishDate(b).localeCompare(publishDate(a)))
+  );
+});
+
+app.post('/api/articles', (req, res) => {
+  const id = req.body.id || `article-${randomUUID()}`;
+  const createdAt = new Date().toISOString();
+  const article = {
+    slug: id, title: '', category: 'Tin tức', coverImage: '', excerpt: '', content: '', author: '', hidden: false,
+    createdAt, status: 'published', publishAt: createdAt, pinned: false, relatedTourIds: [],
+    ...withoutReadonly(req.body),
+    views: 0,
+    id,
+  };
+  articles.push(article);
+  res.status(201).json(withStats(article));
+});
+
+app.put('/api/articles/:id', (req, res) => {
+  const i = articles.findIndex((a) => a.id === req.params.id);
+  if (i < 0) return res.status(404).json({ error: 'Article not found' });
+  articles[i] = { ...articles[i], ...withoutReadonly(req.body), id: req.params.id };
+  res.json(withStats(articles[i]));
+});
+
+app.patch('/api/articles/:id/hidden', (req, res) => {
+  const article = articles.find((a) => a.id === req.params.id);
+  if (!article) return res.status(404).json({ error: 'Article not found' });
+  article.hidden = !article.hidden;
+  res.json(withStats(article));
+});
+
+app.delete('/api/articles/:id', (req, res) => {
+  articles = articles.filter((a) => a.id !== req.params.id);
+  comments = comments.filter((c) => c.articleId !== req.params.id);
+  ratings = ratings.filter((r) => r.articleId !== req.params.id);
+  res.status(204).end();
+});
+
+app.post('/api/articles/:id/view', (req, res) => {
+  const article = articles.find((a) => a.id === req.params.id);
+  if (!article) return res.status(404).json({ error: 'Article not found' });
+  article.views = (article.views ?? 0) + 1;
+  res.json({ views: article.views });
+});
+
+app.get('/api/articles/:id/comments', (req, res) => {
+  if (!articles.some((a) => a.id === req.params.id)) return res.status(404).json({ error: 'Article not found' });
+  const list = comments
+    .filter((c) => c.articleId === req.params.id && !c.hidden)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .map(withAuthor);
+  res.json({ comments: list, ...ratingSummary(req.params.id, req.query.userId) });
+});
+
+app.post('/api/articles/:id/comments', (req, res) => {
+  const content = String(req.body?.content ?? '').trim();
+  if (!content) return res.status(400).json({ error: 'Nội dung bình luận không được để trống' });
+  if (content.length > 1000) return res.status(400).json({ error: 'Bình luận tối đa 1000 ký tự' });
+  if (!checkFeedback(req, res, req.body?.userId)) return;
+  const comment = { id: `cmt-${randomUUID()}`, articleId: req.params.id, userId: req.body.userId, content, hidden: false, createdAt: new Date().toISOString() };
+  comments.push(comment);
+  res.status(201).json(withAuthor(comment));
+});
+
+app.put('/api/articles/:id/rating', (req, res) => {
+  const rating = Number(req.body?.rating);
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) return res.status(400).json({ error: 'Điểm đánh giá phải từ 1 đến 5' });
+  const { userId } = req.body;
+  if (!checkFeedback(req, res, userId)) return;
+  ratings = ratings.filter((r) => !(r.articleId === req.params.id && r.userId === userId));
+  ratings.push({ articleId: req.params.id, userId, rating, createdAt: new Date().toISOString() });
+  res.json(ratingSummary(req.params.id, userId));
+});
+
+app.get('/api/comments', (_req, res) => {
+  res.json([...comments].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(withAuthor));
+});
+
+app.patch('/api/comments/:id', (req, res) => {
+  const comment = comments.find((c) => c.id === req.params.id);
+  if (!comment) return res.status(404).json({ error: 'Comment not found' });
+  comment.hidden = Boolean(req.body?.hidden);
+  res.json(withAuthor(comment));
+});
+
+app.delete('/api/comments/:id', (req, res) => {
+  comments = comments.filter((c) => c.id !== req.params.id);
   res.status(204).end();
 });
 

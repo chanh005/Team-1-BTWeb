@@ -7,7 +7,8 @@ export default async function handler(req, res) {
   await ensureSchema(pool);
 
   if (req.method === 'GET') {
-    return res.status(200).json(await listArticles(pool));
+    // ?public=1: only what Bảng tin readers may see (no hidden, draft or not-yet-due articles)
+    return res.status(200).json(await listArticles(pool, { publicOnly: req.query.public === '1' }));
   }
   if (req.method === 'POST') {
     return res.status(201).json(await createArticle(pool, req.body));

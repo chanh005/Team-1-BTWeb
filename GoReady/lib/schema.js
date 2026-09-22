@@ -90,6 +90,25 @@ const CREATE_SQL = `
     "createdAt" TEXT
   );
 
+  -- Bình luận của người dùng dưới bài viết Bảng tin; admin có thể ẩn/xoá
+  CREATE TABLE IF NOT EXISTS article_comments (
+    id TEXT PRIMARY KEY,
+    "articleId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    content TEXT NOT NULL,
+    hidden BOOLEAN NOT NULL DEFAULT FALSE,
+    "createdAt" TEXT
+  );
+
+  -- Mỗi người dùng chấm một bài viết đúng một lần (chấm lại thì ghi đè)
+  CREATE TABLE IF NOT EXISTS article_ratings (
+    "articleId" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    rating INTEGER NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    "createdAt" TEXT,
+    PRIMARY KEY ("articleId", "userId")
+  );
+
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT,
@@ -122,6 +141,12 @@ export async function ensureSchema(pool) {
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS "childPrice" INTEGER`);
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS category TEXT`);
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS keywords JSONB`);
+  // Bảng tin: nháp/hẹn giờ đăng, ghim bài, lượt xem, tour gắn kèm bài viết
+  await pool.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'published'`);
+  await pool.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS "publishAt" TEXT`);
+  await pool.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS pinned BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS views INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE articles ADD COLUMN IF NOT EXISTS "relatedTourIds" JSONB NOT NULL DEFAULT '[]'`);
   ensured = true;
 }
 

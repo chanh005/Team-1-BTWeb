@@ -270,6 +270,40 @@ export interface Article {
   author: string;
   hidden?: boolean; // admin-only: ẩn bài viết khỏi Bảng tin
   createdAt: string; // ISO date
+  /** 'draft': chỉ admin thấy. 'published': hiện ở Bảng tin từ `publishAt` trở đi (hẹn giờ đăng nếu ở tương lai). */
+  status: ArticleStatus;
+  publishAt: string | null; // ISO date — ngày đăng hiển thị cho người đọc
+  pinned: boolean; // ghim lên đầu Bảng tin
+  relatedTourIds: string[]; // tour gắn kèm bài viết (thẻ "Đặt ngay")
+  views: number;
+  // Tính từ bình luận/đánh giá, chỉ đọc
+  ratingAvg: number;
+  ratingCount: number;
+  commentCount: number; // không tính bình luận đã ẩn
+}
+
+export type ArticleStatus = 'draft' | 'published';
+
+export interface ArticleComment {
+  id: string;
+  articleId: string;
+  userId: string;
+  userName: string | null; // null nếu tài khoản đã bị xoá
+  userRating: number | null; // số sao người viết bình luận đã chấm bài này
+  articleTitle: string | null;
+  content: string;
+  hidden: boolean;
+  createdAt: string; // ISO date
+}
+
+export interface ArticleRatingSummary {
+  ratingAvg: number;
+  ratingCount: number;
+  myRating: number | null; // số sao người dùng hiện tại đã chấm (null nếu chưa)
+}
+
+export interface ArticleFeedback extends ArticleRatingSummary {
+  comments: ArticleComment[];
 }
 
 export interface AiPlannerResult {

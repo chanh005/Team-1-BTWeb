@@ -7,7 +7,7 @@ import bookingsRouter from './routes/bookings.js';
 import usersRouter from './routes/users.js';
 import imagesRouter from './routes/images.js';
 import chuyenDiRouter from './routes/chuyenDi.js';
-import articlesRouter from './routes/articles.js';
+import articlesRouter, { commentsRouter } from './routes/articles.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -25,6 +25,7 @@ app.use('/api/bookings', bookingsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/chuyen-di', chuyenDiRouter);
 app.use('/api/articles', articlesRouter);
+app.use('/api/comments', commentsRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

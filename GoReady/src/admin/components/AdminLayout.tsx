@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type AdminPage = 'dashboard' | 'tours' | 'bookings' | 'users' | 'articles';
+export type AdminPage = 'dashboard' | 'tours' | 'bookings' | 'users' | 'articles' | 'comments';
 
 interface AdminLayoutProps {
   page: AdminPage;
@@ -16,6 +16,7 @@ const NAV_ITEMS: { label: string; value: AdminPage; icon: string }[] = [
   { label: 'Đơn đặt tour', value: 'bookings', icon: '🎫' },
   { label: 'Người dùng', value: 'users', icon: '👤' },
   { label: 'Bảng tin', value: 'articles', icon: '📰' },
+  { label: 'Bình luận', value: 'comments', icon: '💬' },
 ];
 
 const USER_SITE_URL = '/';

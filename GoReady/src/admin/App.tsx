@@ -6,6 +6,7 @@ import TourManagement from './components/TourManagement';
 import BookingManagement from './components/BookingManagement';
 import UserManagement from './components/UserManagement';
 import ArticleManagement from './components/ArticleManagement';
+import CommentManagement from './components/CommentManagement';
 import { api } from '../api';
 import { addSheetToursIfMissing } from './importSheetTours';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -20,10 +21,12 @@ function App() {
   const { data: bookingsData, refresh: refreshBookings } = usePolledResource(api.getBookings);
   const { data: usersData, refresh: refreshUsers } = usePolledResource(api.getUsers);
   const { data: articlesData, refresh: refreshArticles } = usePolledResource(api.getArticles);
+  const { data: commentsData, refresh: refreshComments } = usePolledResource(api.getComments);
   const tours = toursData ?? [];
   const bookings = bookingsData ?? [];
   const users = usersData ?? [];
   const articles = articlesData ?? [];
+  const comments = commentsData ?? [];
 
   // First time only: the tours of the Google Sheet are added to the database by themselves, so they appear in
   // Quản lý Tour like any other tour (the rules are in addSheetToursIfMissing). Waits for the first tour list.
@@ -119,10 +122,26 @@ function App() {
     await api.toggleArticleHidden(articleId);
     refreshArticles();
   };
+  // Sends the value opposite to what the row shows (not a server-side toggle), so it matches what the admin clicked
+  const handleToggleArticlePinned = async (article: Article) => {
+    await api.updateArticle(article.id, { pinned: !article.pinned });
+    refreshArticles();
+  };
+
+  const handleSetCommentHidden = async (commentId: string, hidden: boolean) => {
+    await api.setCommentHidden(commentId, hidden);
+    refreshComments();
+    refreshArticles(); // commentCount only counts visible comments
+  };
+  const handleDeleteComment = async (commentId: string) => {
+    await api.deleteComment(commentId);
+    refreshComments();
+    refreshArticles();
+  };
 
   return (
     <AdminLayout page={page} onNavigate={setPage} adminName={adminUser.name} onLogout={() => setAdminEmail('')}>
-      {page === 'dashboard' && <Dashboard tours={tours} bookings={bookings} users={users} />}
+      {page === 'dashboard' && <Dashboard tours={tours} bookings={bookings} users={users} articles={articles} />}
       {page === 'tours' && (
         <TourManagement tours={tours} onAdd={handleAddTour} onUpdate={handleUpdateTour} onDelete={handleDeleteTour} onToggleHidden={handleToggleHidden} onSetFeatured={handleSetFeatured}
           notice={sheetNotice}
@@ -134,13 +153,16 @@ function App() {
       {page === 'articles' && (
         <ArticleManagement
           articles={articles}
+          tours={tours}
           onAdd={handleAddArticle}
           onUpdate={handleUpdateArticle}
           onDelete={handleDeleteArticle}
           onToggleHidden={handleToggleArticleHidden}
+          onTogglePinned={handleToggleArticlePinned}
           adminName={adminUser.name}
         />
       )}
+      {page === 'comments' && <CommentManagement comments={comments} onSetHidden={handleSetCommentHidden} onDelete={handleDeleteComment} />}
     </AdminLayout>
   );
 }

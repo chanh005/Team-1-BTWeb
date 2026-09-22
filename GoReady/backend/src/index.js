@@ -6,20 +6,23 @@ import toursRouter from './routes/tours.js';
 import bookingsRouter from './routes/bookings.js';
 import usersRouter from './routes/users.js';
 import imagesRouter from './routes/images.js';
+import chuyenDiRouter from './routes/chuyenDi.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const pool = getPool();
 
 app.use(cors());
 
 // Before the global JSON parser below: uploads carry a photo (base64), so this route sets its own, larger body limit
-const pool = getPool();
 app.use('/api/images', imagesRouter(pool));
+
 app.use(express.json({ limit: '2mb' })); // allow base64 avatar uploads
 
 app.use('/api/tours', toursRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/chuyen-di', chuyenDiRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

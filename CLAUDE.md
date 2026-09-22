@@ -25,7 +25,9 @@ Root `backend/`: `npm run dev`, `npm run seed` (loads tours from CSV/Google Shee
 **Dual API surface sharing one core.** Business logic and SQL live in `GoReady/lib/*.js` (`tours`, `bookings`, `users`, `images`, `schema`, `db`). It's exposed two ways:
 - Production (Vercel): serverless handlers in `GoReady/api/**` (file-path routing, e.g. `api/tours/[id]/hidden.js`).
 - Local dev: Express routers in `GoReady/backend/src/routes/*` mounting the same `lib/` functions.
-A new endpoint therefore needs both a `api/` handler and an Express route, calling a shared `lib/` function. The frontend always calls relative `/api/...` (`GoReady/src/api.ts`).
+A new endpoint therefore needs both a `api/` handler and an Express route, calling a shared `lib/` function.
+
+Vercel Hobby allows at most **12 functions** (one per file under `GoReady/api/`), and the count is exactly 12 now. So every Bảng tin route (`/api/articles/**`, `/api/comments/**`) and `/api/health` are served by one file, `api/bang-tin.js`, which `GoReady/vercel.json` rewrites those URLs to. Add new Bảng tin endpoints inside that file rather than as new files, and don't add another file to `api/` without removing one. The frontend always calls relative `/api/...` (`GoReady/src/api.ts`).
 
 **Database.** Postgres (Neon) via `POSTGRES_URL` in `GoReady/.env` (note: the root `backend/` uses `DATABASE_URL` instead). `lib/schema.js` `ensureSchema` creates tables idempotently and `seedIfEmpty` loads `lib/seed-data/*.json`; every handler/startup calls both, so schema changes go there (use `ALTER ... IF NOT EXISTS`-style migrations). Camel-case columns are quoted (`"coverImage"`). Tour images are uploaded as base64 and stored in DB via `/api/images`.
 

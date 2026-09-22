@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/api/articles", "destination": "/api/bang-tin?route=articles" },
+    { "source": "/api/articles/:path*", "destination": "/api/bang-tin?route=articles/:path*" },
+    { "source": "/api/comments", "destination": "/api/bang-tin?route=comments" },
+    { "source": "/api/comments/:path*", "destination": "/api/bang-tin?route=comments/:path*" },
+    { "source": "/api/health", "destination": "/api/bang-tin?route=health" }
+  ]
+}

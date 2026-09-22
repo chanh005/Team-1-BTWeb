@@ -26,6 +26,12 @@ app.use('/api/chuyen-di', chuyenDiRouter);
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
+// Errors forwarded by the route handlers: answer with JSON (the client shows `error`) instead of crashing
+app.use((err, _req, res, _next) => {
+  console.error('[api]', err);
+  res.status(500).json({ error: err instanceof Error ? err.message : 'Server error' });
+});
+
 await ensureSchema(pool);
 await seedIfEmpty(pool);
 

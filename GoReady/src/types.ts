@@ -75,7 +75,7 @@ export interface Tour {
   duration: number; // days
   nights: number;
   departure: string;
-  hotelStars: 3 | 4 | 5;
+  hotelStars: 0 | 3 | 4 | 5; // 0 = no star-rated hotel in the package
   transport: string;
   styleTags: TravelStyle[];
   groupSizeTags: GroupSizeTag[];
@@ -90,16 +90,94 @@ export interface Tour {
   cancellationPolicy: string;
   route: Coordinate[]; // full trip route (all days)
   hidden?: boolean; // admin-only: ẩn tour khỏi trang người dùng
+  isFeatured?: boolean; // admin-only: đánh dấu "Tour nổi bật" trên trang chủ
+
+  // Optional fields, populated for tours loaded from the "Gợi ý chuyến đi" sheet
+  code?: string; // sheet code, e.g. "SP01"
+  durationLabel?: string; // raw duration text, e.g. "1 buổi (17:00 - 21:00)"
+  childPrice?: number; // VND
+  category?: string; // e.g. "Tour Miền Bắc"
+  keywords?: string[];
 }
+
+// --- Lịch khởi hành cố định của đoàn (tour "Gợi ý chuyến đi") ---
+export type TransportKind = 'flight' | 'limousine' | 'coach' | 'local';
+
+/** Một chặng di chuyển của đoàn: chuyến bay, xe limousine/giường nằm, hoặc xe đón tại điểm hẹn. */
+export interface DepartureLeg {
+  label: string; // "Ngày đi" | "Ngày về" | "Giờ đón" | "Kết thúc"
+  date: string; // "YYYY-MM-DD"
+  kind: TransportKind;
+  operator: string; // hãng bay hoặc loại xe
+  code?: string; // số hiệu chuyến bay, vd. "VJ770"
+  from: string;
+  fromCode?: string; // mã sân bay
+  to: string;
+  toCode?: string;
+  departTime: string; // "08:05"
+  arriveTime: string; // "" với xe đón tại điểm hẹn
+}
+
+export interface DeparturePrices {
+  adult: number;
+  child?: number;
+  childRange: string; // "Từ 5 - 11 tuổi"
+  freeRange: string; // "Dưới 5 tuổi" — được miễn phí
+  singleRoom?: number; // phụ thu phòng đơn
+}
+
+export interface Departure {
+  id: string; // mã đoàn, vd. "DN01-210926VJ"
+  date: string;
+  returnDate: string;
+  kind: TransportKind;
+  departFrom: string;
+  /** Sức chứa tối đa của đoàn. */
+  maxSeats: number;
+  /** Số chỗ còn lại. Từ `buildDepartures` là số chỗ ban đầu; qua `useLiveDepartures` là số chỗ hiện tại sau khi trừ các booking. */
+  availableSeats: number;
+  legs: [DepartureLeg, DepartureLeg];
+  prices: DeparturePrices;
+}
+
+/** Trạng thái một suất khởi hành sau khi tính số chỗ đã bán và người đang giữ chỗ. */
+export type SeatStatus = 'available' | 'holding' | 'sold-out';
+
+/** `Departure` kèm tồn kho thời gian thực: `availableSeats` đã trừ số chỗ đã bán. */
+export interface LiveDeparture extends Departure {
+  status: SeatStatus;
+  /** Chính khách này đang giữ chỗ (khác với "người khác đang giữ"). */
+  heldByMe: boolean;
+  /** Mốc hết hạn giữ chỗ (ms epoch) khi `status === 'holding'` hoặc `heldByMe`. */
+  holdExpiresAt?: number;
+}
+
+/** Một ngày khởi hành như backend lưu: chỗ tối đa, chỗ còn lại và (nếu có) lượt giữ chỗ đang chạy. */
+export interface SeatRecord {
+  id: string;
+  maxSeats: number;
+  availableSeats: number;
+  status: SeatStatus;
+  /** Lượt giữ chỗ đang chạy là của chính khách gọi API. */
+  heldByMe: boolean;
+  /** Còn bao nhiêu ms nữa lượt giữ chỗ hết hạn (tính theo đồng hồ server, tránh lệch giờ với máy khách). */
+  holdRemainingMs?: number;
+}
+
+export type HoldResponse = { ok: true; ttlMs: number } | { ok: false; reason: 'held' | 'sold-out' | 'not-enough' };
 
 export interface AddOnService {
   id: string;
   label: string;
   description: string;
+  /** Đơn giá: theo khách (người lớn + trẻ em) hoặc theo booking. */
   price: number;
+  unit?: 'guest' | 'booking';
+  /** Số lượng đã áp dụng khi đặt (điền lúc tạo booking). */
+  quantity?: number;
 }
 
-export type PaymentMethod = 'vietqr' | 'momo' | 'card';
+export type PaymentMethod = 'vietqr' | 'momo' | 'vnpay' | 'card';
 export type BookingStatus = 'confirmed' | 'upcoming' | 'completed' | 'cancelled';
 
 export interface Booking {
@@ -107,6 +185,7 @@ export interface Booking {
   bookingCode: string;
   tourId: string;
   departureDate: string; // ISO date
+  departureCode?: string; // mã đoàn (tour có lịch khởi hành cố định)
   adults: number;
   children: number;
   infants: number;

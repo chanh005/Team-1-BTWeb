@@ -1,6 +1,9 @@
 import React from 'react';
 import type { Tour } from '../../types';
 import { formatVND, uid } from '../../utils/format';
+import { api } from '../../api';
+import { onImageError } from '../../utils/image';
+import { compressImage } from '../../utils/imageUpload';
 
 interface TourManagementProps {
   tours: Tour[];
@@ -8,6 +11,11 @@ interface TourManagementProps {
   onUpdate: (tour: Tour) => void;
   onDelete: (tourId: string) => void;
   onToggleHidden: (tourId: string) => void;
+  /** Saves the "Tour nổi bật" flag; must reject when the request fails so the switch can roll back. */
+  onSetFeatured: (tourId: string, isFeatured: boolean) => Promise<void>;
+  /** One-off message from the app, e.g. that the Google Sheet tours were just added. */
+  notice?: { tone: 'ok' | 'warn'; text: string } | null;
+  onDismissNotice?: () => void;
 }
 
 type TourFormState = {
@@ -15,14 +23,16 @@ type TourFormState = {
   destination: string;
   country: string;
   region: 'Việt Nam' | 'Quốc tế';
-  coverImage: string;
+  images: string[]; // images[0] is the cover, the rest is the gallery
   price: string;
   discountPrice: string;
   duration: string;
   nights: string;
-  hotelStars: '3' | '4' | '5';
+  hotelStars: '0' | '3' | '4' | '5'; // 0 = không xếp sao (tour nhập từ Google Sheet có thể không ghi hạng)
   transport: string;
   shortDescription: string;
+  highlights: string;
+  isFeatured: boolean;
 };
 
 const EMPTY_FORM: TourFormState = {
@@ -30,7 +40,7 @@ const EMPTY_FORM: TourFormState = {
   destination: '',
   country: 'Việt Nam',
   region: 'Việt Nam',
-  coverImage: '',
+  images: [],
   price: '',
   discountPrice: '',
   duration: '3',
@@ -38,53 +48,161 @@ const EMPTY_FORM: TourFormState = {
   hotelStars: '4',
   transport: 'Máy bay + Xe đưa đón',
   shortDescription: '',
+  highlights: '',
+  isFeatured: false,
 };
+
+const DEFAULT_COVER = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=800&fit=crop&q=80';
+
+const MAX_IMAGES = 12;
+
+const isImageUrl = (value: string) => /^(https?:)?\/\//.test(value) || value.startsWith('/');
 
 const tourToForm = (t: Tour): TourFormState => ({
   name: t.name,
   destination: t.destination,
   country: t.country,
   region: t.region,
-  coverImage: t.coverImage,
+  // Sheet tours without a photo carry a generated placeholder (data: URI): it is not an image the admin can manage
+  images: [t.coverImage, ...t.gallery].filter((url) => url && !url.startsWith('data:')),
   price: String(t.price),
   discountPrice: t.discountPrice ? String(t.discountPrice) : '',
   duration: String(t.duration),
   nights: String(t.nights),
-  hotelStars: String(t.hotelStars) as '3' | '4' | '5',
+  hotelStars: String(t.hotelStars) as TourFormState['hotelStars'],
   transport: t.transport,
   shortDescription: t.shortDescription,
+  highlights: (t.highlights || []).join('\n'),
+  isFeatured: Boolean(t.isFeatured),
 });
 
-const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate, onDelete, onToggleHidden }) => {
+const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate, onDelete, onToggleHidden, onSetFeatured, notice, onDismissNotice }) => {
   const [query, setQuery] = React.useState('');
+  // Featured switch: the value the admin just picked, shown at once while the request is in flight
+  const [pendingFeatured, setPendingFeatured] = React.useState<Record<string, boolean>>({});
+  const [featuredError, setFeaturedError] = React.useState<string | null>(null);
   const [editingTour, setEditingTour] = React.useState<Tour | null>(null);
   const [showForm, setShowForm] = React.useState(false);
   const [form, setForm] = React.useState<TourFormState>(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = React.useState<Tour | null>(null);
+  const [upload, setUpload] = React.useState<{ done: number; total: number } | null>(null);
+  const [imageErrors, setImageErrors] = React.useState<string[]>([]);
+  const [urlDraft, setUrlDraft] = React.useState('');
+  // Bumped every time the form opens/closes so an upload that finishes late never lands in a different form
+  const formSession = React.useRef(0);
 
   const filtered = tours.filter(
     (t) => t.name.toLowerCase().includes(query.toLowerCase()) || t.destination.toLowerCase().includes(query.toLowerCase())
   );
 
+  const resetImageUi = () => {
+    formSession.current++;
+    setUpload(null);
+    setImageErrors([]);
+    setUrlDraft('');
+  };
+
   const openAddForm = () => {
+    resetImageUi();
     setEditingTour(null);
     setForm(EMPTY_FORM);
     setShowForm(true);
   };
 
   const openEditForm = (tour: Tour) => {
+    resetImageUi();
     setEditingTour(tour);
     setForm(tourToForm(tour));
     setShowForm(true);
   };
 
+  const closeForm = () => {
+    resetImageUi();
+    setShowForm(false);
+  };
+
   const patchForm = (patch: Partial<TourFormState>) => setForm((f) => ({ ...f, ...patch }));
+
+  const isFeatured = (t: Tour) => pendingFeatured[t.id] ?? Boolean(t.isFeatured);
+
+  // Optimistic: flips immediately; if the request fails the pending value is dropped, which shows the saved value again
+  const toggleFeatured = async (t: Tour) => {
+    const next = !isFeatured(t);
+    setFeaturedError(null);
+    setPendingFeatured((p) => ({ ...p, [t.id]: next }));
+    try {
+      await onSetFeatured(t.id, next);
+    } catch (err) {
+      setFeaturedError(`Không thể ${next ? 'bật' : 'tắt'} nổi bật cho "${t.name}"${err instanceof Error && err.message ? `: ${err.message}` : ''}. Đã hoàn tác.`);
+    } finally {
+      setPendingFeatured(({ [t.id]: _done, ...rest }) => rest);
+    }
+  };
+
+  const addImages = (urls: string[]) =>
+    setForm((f) => ({ ...f, images: [...f.images, ...urls.filter((url) => !f.images.includes(url))].slice(0, MAX_IMAGES) }));
+  const removeImage = (url: string) => setForm((f) => ({ ...f, images: f.images.filter((u) => u !== url) }));
+  const makeCover = (url: string) => setForm((f) => ({ ...f, images: [url, ...f.images.filter((u) => u !== url)] }));
+
+  const addImageUrl = () => {
+    const url = urlDraft.trim();
+    if (!url) return;
+    if (!isImageUrl(url)) {
+      setImageErrors(['URL ảnh phải bắt đầu bằng http://, https:// hoặc /']);
+      return;
+    }
+    if (form.images.length >= MAX_IMAGES) {
+      setImageErrors([`Mỗi tour chỉ có tối đa ${MAX_IMAGES} ảnh`]);
+      return;
+    }
+    addImages([url]);
+    setUrlDraft('');
+    setImageErrors([]);
+  };
+
+  // Several photos at once: each is shrunk in the browser, uploaded, and its thumbnail appears as soon as it is stored
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = ''; // lets the same file be picked again later
+    if (files.length === 0) return;
+
+    const session = formSession.current;
+    const queue = files.slice(0, Math.max(MAX_IMAGES - form.images.length, 0));
+    const errors: string[] = [];
+    if (files.length > queue.length) errors.push(`Mỗi tour chỉ có tối đa ${MAX_IMAGES} ảnh, đã bỏ qua ${files.length - queue.length} ảnh.`);
+    if (queue.length === 0) {
+      setImageErrors(errors);
+      return;
+    }
+
+    setImageErrors([]);
+    setUpload({ done: 0, total: queue.length });
+    for (const [i, file] of queue.entries()) {
+      try {
+        const { url } = await api.uploadImage(await compressImage(file));
+        if (formSession.current !== session) return; // the form was closed meanwhile
+        addImages([url]);
+      } catch (err) {
+        errors.push(err instanceof Error ? err.message : `Không tải được "${file.name}"`);
+      }
+      if (formSession.current !== session) return;
+      setUpload({ done: i + 1, total: queue.length });
+    }
+    setUpload(null);
+    setImageErrors(errors);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const price = Number(form.price) || 0;
     const discountPrice = form.discountPrice ? Number(form.discountPrice) : undefined;
-    const coverImage = form.coverImage || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=800&fit=crop&q=80';
+    // First image = cover. With no images the tour keeps the cover it already had
+    const coverImage = form.images[0] || editingTour?.coverImage || DEFAULT_COVER;
+    const gallery = form.images.slice(1);
+    const highlights = form.highlights
+      .split('\n')
+      .map((h) => h.trim())
+      .filter(Boolean);
 
     if (editingTour) {
       onUpdate({
@@ -94,13 +212,16 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         country: form.country,
         region: form.region,
         coverImage,
+        gallery,
         price,
         discountPrice,
         duration: Number(form.duration) || 1,
         nights: Number(form.nights) || 0,
-        hotelStars: Number(form.hotelStars) as 3 | 4 | 5,
+        hotelStars: Number(form.hotelStars) as Tour['hotelStars'],
         transport: form.transport,
         shortDescription: form.shortDescription,
+        highlights,
+        isFeatured: form.isFeatured,
       });
     } else {
       const newTour: Tour = {
@@ -111,7 +232,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         country: form.country,
         region: form.region,
         coverImage,
-        gallery: [coverImage],
+        gallery,
         shortDescription: form.shortDescription,
         description: form.shortDescription,
         price,
@@ -119,7 +240,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         duration: Number(form.duration) || 1,
         nights: Number(form.nights) || 0,
         departure: 'TP. Hồ Chí Minh',
-        hotelStars: Number(form.hotelStars) as 3 | 4 | 5,
+        hotelStars: Number(form.hotelStars) as Tour['hotelStars'],
         transport: form.transport,
         styleTags: [],
         groupSizeTags: [],
@@ -130,13 +251,14 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         includes: [],
         excludes: [],
         reviews: [],
-        highlights: [],
+        highlights,
         cancellationPolicy: 'Hoàn 100% nếu huỷ trước 7 ngày khởi hành.',
         route: [],
+        isFeatured: form.isFeatured,
       };
       onAdd(newTour);
     }
-    setShowForm(false);
+    closeForm();
   };
 
   return (
@@ -156,14 +278,38 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
         </button>
       </div>
 
+      {notice && (
+        <div
+          role="status"
+          className={`flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm ${
+            notice.tone === 'ok' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-amber-200 bg-amber-50 text-amber-800'
+          }`}
+        >
+          <span>{notice.text}</span>
+          <button onClick={onDismissNotice} aria-label="Đóng thông báo" className="shrink-0 font-bold opacity-60 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
+      {featuredError && (
+        <div role="alert" className="flex items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <span>{featuredError}</span>
+          <button onClick={() => setFeaturedError(null)} aria-label="Đóng thông báo" className="shrink-0 font-bold opacity-60 hover:opacity-100">
+            ✕
+          </button>
+        </div>
+      )}
+
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-soft">
-        <table className="w-full min-w-[720px] text-left text-sm">
+        <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3">Tour</th>
               <th className="px-4 py-3">Điểm đến</th>
               <th className="px-4 py-3">Giá</th>
               <th className="px-4 py-3">Đánh giá</th>
+              <th className="px-4 py-3">Nổi bật</th>
               <th className="px-4 py-3">Trạng thái</th>
               <th className="px-4 py-3 text-right">Thao tác</th>
             </tr>
@@ -173,13 +319,30 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
               <tr key={t.id} className={t.hidden ? 'opacity-50' : ''}>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <img src={t.coverImage} alt={t.name} className="h-10 w-14 shrink-0 rounded-lg object-cover" />
-                    <span className="line-clamp-1 max-w-[220px] font-semibold text-slate-800">{t.name}</span>
+                    <img src={t.coverImage} alt={t.name} onError={onImageError} className="h-10 w-14 shrink-0 rounded-lg object-cover" />
+                    <div className="min-w-0">
+                      <span className="line-clamp-1 max-w-[220px] font-semibold text-slate-800">{t.name}</span>
+                      {t.code && <span className="text-[11px] text-slate-400">{t.code}</span>}
+                    </div>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-slate-600">{t.destination}</td>
                 <td className="px-4 py-3 font-semibold text-primary-700">{formatVND(t.discountPrice ?? t.price)}</td>
                 <td className="px-4 py-3 text-slate-600">★ {t.rating.toFixed(1)}</td>
+                <td className="px-4 py-3">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isFeatured(t)}
+                    aria-label={`Tour nổi bật: ${t.name}`}
+                    title={t.hidden ? 'Tour đang ẩn nên chưa hiện ở trang người dùng, dù đã đánh dấu nổi bật' : 'Bật/tắt tour nổi bật trên trang chủ'}
+                    disabled={t.id in pendingFeatured}
+                    onClick={() => toggleFeatured(t)}
+                    className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:cursor-wait ${isFeatured(t) ? 'bg-primary' : 'bg-slate-200'}`}
+                  >
+                    <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isFeatured(t) ? 'translate-x-5' : ''}`} />
+                  </button>
+                </td>
                 <td className="px-4 py-3">
                   <button
                     onClick={() => onToggleHidden(t.id)}
@@ -204,7 +367,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-slate-400">
                   Không tìm thấy tour phù hợp.
                 </td>
               </tr>
@@ -239,16 +402,88 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
               </label>
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-semibold text-slate-500">Hạng khách sạn</span>
-                <select value={form.hotelStars} onChange={(e) => patchForm({ hotelStars: e.target.value as '3' | '4' | '5' })} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary">
+                <select value={form.hotelStars} onChange={(e) => patchForm({ hotelStars: e.target.value as TourFormState['hotelStars'] })} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary">
+                  <option value="0">Không xếp sao</option>
                   <option value="3">3 sao</option>
                   <option value="4">4 sao</option>
                   <option value="5">5 sao</option>
                 </select>
               </label>
-              <label className="col-span-2 flex flex-col gap-1">
-                <span className="text-xs font-semibold text-slate-500">Ảnh bìa (URL)</span>
-                <input value={form.coverImage} onChange={(e) => patchForm({ coverImage: e.target.value })} placeholder="https://..." className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
-              </label>
+              <div className="col-span-2 flex flex-col gap-2">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-semibold text-slate-500">
+                    Ảnh tour ({form.images.length}/{MAX_IMAGES})
+                  </span>
+                  <label
+                    className={`cursor-pointer rounded-lg border border-primary px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary-50 ${
+                      upload || form.images.length >= MAX_IMAGES ? 'pointer-events-none opacity-50' : ''
+                    }`}
+                  >
+                    {upload ? `Đang tải ${upload.done}/${upload.total}...` : '+ Chọn ảnh từ máy'}
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple hidden onChange={handleFileInput} />
+                  </label>
+                </div>
+
+                {form.images.length > 0 ? (
+                  <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {form.images.map((url, i) => (
+                      <li key={url} className="group relative overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+                        <img src={url} alt={`Ảnh ${i + 1}`} onError={onImageError} className="h-20 w-full object-cover" />
+                        {i === 0 ? (
+                          <span className="absolute bottom-1 left-1 rounded bg-primary px-1.5 py-0.5 text-[10px] font-bold text-white">Ảnh bìa</span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => makeCover(url)}
+                            className="absolute bottom-1 left-1 rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-700 opacity-0 hover:text-primary focus:opacity-100 group-hover:opacity-100"
+                          >
+                            Đặt làm bìa
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(url)}
+                          aria-label="Xoá ảnh"
+                          className="absolute right-1 top-1 grid h-5 w-5 place-items-center rounded-full bg-black/60 text-[10px] text-white hover:bg-red-500"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-slate-200 px-3 py-4 text-center text-xs text-slate-400">
+                    {editingTour ? 'Tour chưa có ảnh riêng nên đang dùng ảnh hiện tại. Chọn ảnh từ máy để thay thế.' : 'Chưa có ảnh. Bạn có thể chọn nhiều ảnh cùng lúc từ máy.'}
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    value={urlDraft}
+                    onChange={(e) => setUrlDraft(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addImageUrl();
+                      }
+                    }}
+                    placeholder="Hoặc dán URL ảnh rồi bấm Thêm"
+                    className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3.5 py-2 text-sm outline-none focus:border-primary"
+                  />
+                  <button type="button" onClick={addImageUrl} className="shrink-0 rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-600 hover:border-primary hover:text-primary">
+                    Thêm
+                  </button>
+                </div>
+
+                {imageErrors.length > 0 && (
+                  <ul className="space-y-0.5 text-[11px] text-red-500">
+                    {imageErrors.map((message, i) => (
+                      <li key={i}>{message}</li>
+                    ))}
+                  </ul>
+                )}
+                <span className="text-[11px] text-slate-400">Ảnh đầu tiên là ảnh bìa. Tất cả ảnh hiện trên thẻ tour và trang chi tiết ở trang chủ.</span>
+              </div>
               <label className="flex flex-col gap-1">
                 <span className="text-xs font-semibold text-slate-500">Giá gốc (VNĐ)</span>
                 <input required type="number" min="0" value={form.price} onChange={(e) => patchForm({ price: e.target.value })} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
@@ -273,12 +508,27 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
                 <span className="text-xs font-semibold text-slate-500">Mô tả ngắn</span>
                 <textarea value={form.shortDescription} onChange={(e) => patchForm({ shortDescription: e.target.value })} rows={2} className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary" />
               </label>
+              <label className="col-span-2 flex flex-col gap-1">
+                <span className="text-xs font-semibold text-slate-500">Điểm nổi bật (mỗi dòng một ý)</span>
+                <textarea
+                  value={form.highlights}
+                  onChange={(e) => patchForm({ highlights: e.target.value })}
+                  rows={3}
+                  placeholder="Nhập các điểm nổi bật của tour, mỗi dòng một ý..."
+                  className="rounded-xl border border-slate-200 px-3.5 py-2.5 text-sm outline-none focus:border-primary"
+                />
+              </label>
+              <label className="col-span-2 flex items-center gap-2.5">
+                <input type="checkbox" checked={form.isFeatured} onChange={(e) => patchForm({ isFeatured: e.target.checked })} className="h-4 w-4 rounded border-slate-300 accent-primary" />
+                <span className="text-sm font-semibold text-slate-700">Tour nổi bật</span>
+                <span className="text-xs text-slate-400">Hiện ở mục "Tour nổi bật" trên trang chủ (khi tour đang hiện)</span>
+              </label>
             </div>
             <div className="mt-5 flex justify-end gap-3">
-              <button type="button" onClick={() => setShowForm(false)} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300">
+              <button type="button" onClick={closeForm} className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300">
                 Huỷ
               </button>
-              <button type="submit" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-card hover:bg-primary-600">
+              <button type="submit" disabled={upload !== null} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-card hover:bg-primary-600 disabled:cursor-wait disabled:opacity-50">
                 {editingTour ? 'Lưu thay đổi' : 'Thêm tour'}
               </button>
             </div>

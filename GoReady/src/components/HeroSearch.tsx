@@ -16,6 +16,10 @@ const GROUP_OPTIONS: { label: string; value: GroupSizeTag | 'all' }[] = [
 ];
 
 const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, onSearch }) => {
+  const onEnter = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') onSearch();
+  };
+
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500 text-white">
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
@@ -32,6 +36,7 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, onSearch }) 
               <input
                 value={filters.destination}
                 onChange={(e) => onChange({ destination: e.target.value })}
+                onKeyDown={onEnter}
                 placeholder="Đà Nẵng, Phú Quốc, Tokyo..."
                 className="bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
               />
@@ -42,6 +47,7 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, onSearch }) 
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => onChange({ dateFrom: e.target.value })}
+                onKeyDown={onEnter}
                 className="bg-transparent text-sm text-slate-800 outline-none"
               />
             </label>

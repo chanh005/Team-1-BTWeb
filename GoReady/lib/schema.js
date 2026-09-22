@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createTour } from './tours.js';
+import { createArticle } from './articles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -109,6 +110,12 @@ const CREATE_SQL = `
     PRIMARY KEY ("articleId", "userId")
   );
 
+  -- Cờ dùng một lần (vd. đã nạp bài viết mẫu chưa), để dữ liệu mẫu admin đã xoá không tự quay lại
+  CREATE TABLE IF NOT EXISTS app_meta (
+    key TEXT PRIMARY KEY,
+    value TEXT
+  );
+
   CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     name TEXT,
@@ -158,7 +165,23 @@ async function insertRow(pool, table, jsonFields, row) {
   await pool.query(`INSERT INTO ${table} (${quoted.join(',')}) VALUES (${placeholders.join(',')})`, values);
 }
 
+// Bài viết mẫu của Bảng tin: nạp đúng một lần cho mỗi database. Database đã có bài viết (do admin đăng) thì
+// chỉ đánh dấu là đã nạp; admin xoá hết bài mẫu sau đó thì chúng cũng không quay lại.
+export async function seedArticlesOnce(pool) {
+  const { rows: flag } = await pool.query(`SELECT 1 FROM app_meta WHERE key = 'articles_seeded'`);
+  if (flag.length > 0) return;
+
+  const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM articles');
+  if (rows[0].count === 0) {
+    const articles = JSON.parse(readFileSync(join(__dirname, 'seed-data', 'articles.json'), 'utf-8'));
+    for (const a of articles) await createArticle(pool, a);
+    console.log(`Seeded ${articles.length} sample articles`);
+  }
+  await pool.query(`INSERT INTO app_meta (key, value) VALUES ('articles_seeded', $1) ON CONFLICT (key) DO NOTHING`, [new Date().toISOString()]);
+}
+
 export async function seedIfEmpty(pool) {
+  await seedArticlesOnce(pool);
   const { rows } = await pool.query('SELECT COUNT(*)::int AS count FROM tours');
   if (rows[0].count > 0) {
     // Even if tours exist, ensure admin account exists

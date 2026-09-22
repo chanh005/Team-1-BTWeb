@@ -249,7 +249,7 @@ const ArticleManagement: React.FC<ArticleManagementProps> = ({ articles, tours, 
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Tìm theo tiêu đề hoặc tác giả..."
-            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-primary sm:max-w-xs"
+            className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-primary sm:w-72 sm:shrink-0"
           />
           <select
             value={categoryFilter}
@@ -285,16 +285,17 @@ const ArticleManagement: React.FC<ArticleManagementProps> = ({ articles, tours, 
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-soft">
-        <table className="w-full min-w-[980px] text-left text-sm">
-          <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
+        {/* Các cột phụ có độ rộng cố định và gọn; cột Bài viết nhận phần còn lại, để nút thao tác luôn thấy được */}
+        <table className="w-full min-w-[960px] text-left text-sm">
+          <thead className="whitespace-nowrap border-b border-slate-100 bg-slate-50 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
             <tr>
-              <th className="px-4 py-3">Bài viết</th>
-              <th className="px-4 py-3">Chuyên mục</th>
-              <th className="px-4 py-3">Tác giả</th>
-              <th className="px-4 py-3">Ngày đăng</th>
-              <th className="px-4 py-3">Trạng thái</th>
-              <th className="px-4 py-3">Tương tác</th>
-              <th className="px-4 py-3 text-right">Thao tác</th>
+              <th className="px-3 py-3">Bài viết</th>
+              <th className="w-[104px] px-3 py-3">Chuyên mục</th>
+              <th className="w-[112px] px-3 py-3">Tác giả</th>
+              <th className="w-[104px] px-3 py-3">Ngày đăng</th>
+              <th className="w-[112px] px-3 py-3">Trạng thái</th>
+              <th className="w-[92px] px-3 py-3">Tương tác</th>
+              <th className="w-[96px] px-3 py-3 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -302,63 +303,66 @@ const ArticleManagement: React.FC<ArticleManagementProps> = ({ articles, tours, 
               const state = articleState(a);
               return (
                 <tr key={a.id} className={a.hidden ? 'opacity-50' : ''}>
-                  <td className="px-4 py-3">
+                  <td className="px-3 py-3">
                     <div className="flex items-center gap-3">
-                      <img src={a.coverImage} alt={a.title} onError={onImageError} className="h-10 w-14 shrink-0 rounded-lg object-cover" />
+                      <img src={a.coverImage} alt={a.title} onError={onImageError} className="aspect-video w-32 shrink-0 rounded-lg object-cover" />
                       <div className="min-w-0">
-                        <span className="line-clamp-1 max-w-[260px] font-semibold text-slate-800">
+                        <span className="line-clamp-2 font-semibold leading-snug text-slate-800" title={a.title}>
                           {a.pinned && <span title="Đang ghim" aria-label="Đang ghim">📌 </span>}
                           {a.title}
                         </span>
-                        <span className="line-clamp-1 max-w-[260px] text-[11px] text-slate-400">
+                        <span className="mt-0.5 line-clamp-1 text-[11px] text-slate-400">
                           {a.relatedTourIds?.length ? `🧭 ${a.relatedTourIds.length} tour gắn kèm · ` : ''}
                           {a.excerpt}
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-full bg-primary-50 px-2.5 py-1 text-[11px] font-semibold text-primary-700">{a.category}</span>
+                  <td className="px-3 py-3">
+                    <span className="inline-block rounded-lg bg-primary-50 px-2 py-1 text-center text-[11px] font-semibold leading-tight text-primary-700">{a.category}</span>
                   </td>
-                  <td className="px-4 py-3 text-slate-600">{a.author || '—'}</td>
-                  <td className="px-4 py-3 text-slate-600">
+                  <td className="px-3 py-3 text-xs text-slate-600">
+                    <span className="line-clamp-2">{a.author || '—'}</span>
+                  </td>
+                  <td className="px-3 py-3 text-xs text-slate-600">
                     {state === 'draft' ? '—' : state === 'scheduled' && a.publishAt ? formatDateTime(a.publishAt) : formatShortDate(a.publishAt ?? a.createdAt)}
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col items-start gap-1">
+                  <td className="px-3 py-3">
+                    <div className="flex flex-col items-start gap-1.5 whitespace-nowrap">
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${STATE_STYLE[state]}`}>{STATE_LABEL[state]}</span>
                       <button
                         onClick={() => onToggleHidden(a.id)}
                         title="Bấm để ẩn/hiện bài viết"
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${a.hidden ? 'bg-slate-100 text-slate-500' : 'bg-emerald-50 text-emerald-600'}`}
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${a.hidden ? 'bg-slate-100 text-slate-500' : 'bg-sky-50 text-sky-600'}`}
                       >
                         {a.hidden ? 'Đang ẩn' : 'Đang hiện'}
                       </button>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-xs text-slate-500">
+                  <td className="px-3 py-3 text-xs text-slate-500">
                     <div className="flex flex-col gap-0.5 whitespace-nowrap">
                       <span title="Lượt xem">👁 {(a.views ?? 0).toLocaleString('vi-VN')}</span>
-                      <span title="Điểm đánh giá trung bình">
-                        ⭐ {a.ratingCount ? `${a.ratingAvg.toFixed(1)} (${a.ratingCount})` : 'Chưa có'}
+                      <span title="Điểm đánh giá trung bình (số lượt chấm)">
+                        ⭐ {a.ratingCount ? `${a.ratingAvg.toFixed(1)} (${a.ratingCount})` : '—'}
                       </span>
                       <span title="Bình luận đang hiện">💬 {a.commentCount ?? 0}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div className="flex justify-end gap-2">
+                  <td className="px-3 py-3">
+                    {/* Xếp dọc để cột thao tác hẹp, luôn nằm trong khung bảng */}
+                    <div className="ml-auto flex w-[72px] flex-col gap-1.5 whitespace-nowrap">
                       <button
                         onClick={() => onTogglePinned(a)}
-                        className={`rounded-lg border px-3 py-1.5 text-xs font-semibold ${
+                        className={`rounded-lg border px-2 py-1 text-center text-xs font-semibold ${
                           a.pinned ? 'border-primary bg-primary-50 text-primary-700' : 'border-slate-200 text-slate-600 hover:border-primary hover:text-primary'
                         }`}
                       >
                         {a.pinned ? 'Bỏ ghim' : 'Ghim'}
                       </button>
-                      <button onClick={() => openEditForm(a)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:border-primary hover:text-primary">
+                      <button onClick={() => openEditForm(a)} className="rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:border-primary hover:text-primary">
                         Sửa
                       </button>
-                      <button onClick={() => setDeleteTarget(a)} className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-500 hover:bg-red-50">
+                      <button onClick={() => setDeleteTarget(a)} className="rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-500 hover:bg-red-50">
                         Xoá
                       </button>
                     </div>

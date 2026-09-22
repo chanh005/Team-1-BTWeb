@@ -1,10 +1,11 @@
 import { getPool } from '../../lib/db.js';
-import { ensureSchema } from '../../lib/schema.js';
+import { ensureSchema, seedArticlesOnce } from '../../lib/schema.js';
 import { listArticles, createArticle } from '../../lib/articles.js';
 
 export default async function handler(req, res) {
   const pool = getPool();
   await ensureSchema(pool);
+  await seedArticlesOnce(pool);
 
   if (req.method === 'GET') {
     // ?public=1: only what Bảng tin readers may see (no hidden, draft or not-yet-due articles)

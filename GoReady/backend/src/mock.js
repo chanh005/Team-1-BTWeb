@@ -16,7 +16,7 @@ const seed = (name) => JSON.parse(readFileSync(join(seedDir, `${name}.json`), 'u
 let tours = seed('tours');
 let bookings = seed('bookings');
 let users = seed('users');
-let articles = [];
+let articles = seed('articles').map((a) => ({ ...a, views: 0 }));
 const images = new Map();
 
 // Giống ensureAdminAccount trong lib/schema.js

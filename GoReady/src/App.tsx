@@ -504,7 +504,12 @@ function App() {
         </>
       ) : null}
 
-      {view === 'news' && <NewsFeed />}
+      {/* Kept mounted (just hidden) under a tour page opened from an article, so Back returns to the same article */}
+      {view === 'news' && (
+        <div hidden={Boolean(detailPage || tourLoading)}>
+          <NewsFeed tours={allTours} currentUser={currentUser} onOpenTour={openTour} onRequireLogin={() => setShowLogin(true)} />
+        </div>
+      )}
 
       {view === 'trips' && (
         <MyTripsDashboard

@@ -65,7 +65,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, 
           </div>
         </aside>
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        {/* min-w-0: a wide table scrolls inside its own box instead of stretching the whole page past the screen */}
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-30 flex h-16 items-center justify-between gap-3 border-b border-slate-100 bg-white/90 px-4 backdrop-blur sm:px-6">
             <button
               onClick={() => setMobileNavOpen(true)}

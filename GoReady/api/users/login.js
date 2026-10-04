@@ -18,7 +18,8 @@ export default async function handler(req, res) {
     const user = await loginOrRegister(pool, name, email);
     return res.status(200).json(user);
   } catch (err) {
+    console.error('Login error:', err);  // Để debug
     if (err.status === 403) return res.status(403).json({ error: 'locked' });
-    throw err;
-  }
+    return res.status(500).json({ error: err.message || 'Internal server error' });
+}
 }

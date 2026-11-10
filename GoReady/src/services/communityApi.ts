@@ -75,6 +75,23 @@ export const communityApi = {
     }>(`/community/posts${qs}`, { method: 'GET' }, auth);
   },
 
+  /** Lấy danh sách bài viết của chính tôi (mọi trạng thái) */
+  getMyPosts: (auth: AuthHeaders) =>
+    request<CommunityPost[]>('/community/my-posts', { method: 'GET' }, auth),
+
+  /** Lấy danh sách các đơn đặt tour đã hoàn thành chưa đánh giá của tôi */
+  getMyEligibleBookings: (auth: AuthHeaders) =>
+    request<{
+      id: string;
+      bookingCode: string;
+      tourId: string;
+      tourName: string;
+      tourCoverImage?: string;
+      tourDestination: string;
+      departureDate?: string;
+      totalPrice: number;
+    }[]>('/community/my-eligible-bookings', { method: 'GET' }, auth),
+
   /** Xem chi tiết bài viết theo slug */
   getPostBySlug: (slug: string, auth?: AuthHeaders) =>
     request<CommunityPost>(`/community/posts/${encodeURIComponent(slug)}`, { method: 'GET' }, auth),
@@ -174,5 +191,56 @@ export const communityApi = {
       method: 'PATCH',
       body: JSON.stringify({ status, note }),
     }, auth),
+
+  /** Admin: Thống kê tổng quan cộng đồng */
+  getAdminStats: (auth: AuthHeaders) =>
+    request<{
+      pendingCount: number;
+      openReportsCount: number;
+      todayPostsCount: number;
+      weekPostsCount: number;
+      postsByKind: { review: number; post: number; official: number };
+    }>('/community/admin/stats', { method: 'GET' }, auth),
+
+  /** Admin: Danh sách bình luận mới nhất */
+  getAdminComments: (auth: AuthHeaders) =>
+    request<{
+      id: string;
+      postId: string;
+      postTitle: string;
+      postSlug?: string;
+      userId: string;
+      userName: string;
+      userAvatar?: string;
+      content: string;
+      status: string;
+      createdAt: string;
+    }[]>('/community/admin/comments', { method: 'GET' }, auth),
+
+  /** Admin: Danh sách người dùng đăng bài */
+  getAdminUsers: (auth: AuthHeaders) =>
+    request<{
+      userId: string;
+      userName: string;
+      userEmail: string;
+      totalPosts: number;
+      publishedPosts: number;
+      rejectedPosts: number;
+      isPostBanned: boolean;
+      banNote?: string;
+      bannedAt?: string;
+    }[]>('/community/admin/users', { method: 'GET' }, auth),
+
+  /** Admin: Nhật ký kiểm duyệt */
+  getAdminLogs: (auth: AuthHeaders) =>
+    request<{
+      id: string;
+      adminId: string;
+      action: string;
+      targetType: string;
+      targetId: string;
+      reason?: string;
+      createdAt: string;
+    }[]>('/community/admin/logs', { method: 'GET' }, auth),
 };
 

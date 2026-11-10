@@ -11,7 +11,10 @@ import {
   createComment,
   createReport,
   listPublicPosts,
-  getPostBySlug
+  getPostBySlug,
+  listMyPosts,
+  getAdminStats,
+  listAdminLogs
 } from './service.js';
 
 let passedTests = 0;
@@ -285,6 +288,53 @@ async function runTests() {
 
     // Admin mở chặn cho User A
     await setUserPostBan(pool, { userId: normalUserA.id, isBanned: false, note: 'Đã nhắc nhở' }, adminUser);
+  }
+
+  // Test 7: Luồng Draft -> Pending -> Reject kèm lý do -> Resubmit -> Publish
+  console.log('\n--- Test Suite 7: Luồng Draft -> Pending -> Reject -> Resubmit -> Publish ---');
+  {
+    // 1. Tạo bài nháp
+    const draftPost = await createPost(pool, {
+      kind: 'post',
+      title: 'Bài viết đang lưu nháp của User B',
+      contentHtml: '<p>Nội dung nháp đang được biên tập...</p>',
+      destination: 'Hà Nội',
+      status: 'draft'
+    }, normalUserB);
+    assert(draftPost.status === 'draft', 'Tạo bài với status="draft" thành công');
+
+    // Bài nháp xuất hiện trong listMyPosts của user B
+    const myPosts = await listMyPosts(pool, normalUserB);
+    assert(myPosts.some(p => p.id === draftPost.id && p.status === 'draft'), 'Bài nháp hiển thị trong bài của tôi');
+
+    // 2. Gửi duyệt bài nháp -> chuyển sang pending
+    const submitted = await updatePost(pool, draftPost.id, {
+      status: 'pending',
+      submitForReview: true
+    }, normalUserB);
+    assert(submitted.status === 'pending', 'User gửi duyệt bài nháp -> chuyển thành pending');
+
+    // 3. Admin từ chối bài viết kèm lý do
+    const rejectReason = 'Hình ảnh mờ, chất lượng quá thấp hoặc không liên quan tới nội dung bài viết.';
+    await moderatePost(pool, draftPost.id, { action: 'reject', reason: rejectReason }, adminUser);
+
+    const rejectedView = await getPostBySlug(pool, draftPost.slug, normalUserB);
+    assert(rejectedView.status === 'rejected', 'Bài viết chuyển sang trạng thái rejected');
+    assert(rejectedView.rejectReason === rejectReason, 'Lý do từ chối được lưu chính xác và phản hồi cho tác giả');
+
+    // Dọn dẹp
+    await pool.query('DELETE FROM community_posts WHERE id = $1', [draftPost.id]);
+  }
+
+  // Test 8: Admin Thống kê & Ghi nhật ký kiểm duyệt
+  console.log('\n--- Test Suite 8: Admin Thống kê & Moderation Log ---');
+  {
+    const stats = await getAdminStats(pool, adminUser);
+    assert(stats && typeof stats.pendingCount === 'number', 'Lấy thống kê admin thành công (pendingCount)');
+    assert(typeof stats.openReportsCount === 'number', 'Thống kê có openReportsCount');
+
+    const logs = await listAdminLogs(pool, adminUser);
+    assert(Array.isArray(logs) && logs.length > 0, 'Nhật ký kiểm duyệt moderation log ghi nhận các hành động của admin');
   }
 
   // Dọn dẹp các bài test tạm thời

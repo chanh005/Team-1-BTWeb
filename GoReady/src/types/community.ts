@@ -148,6 +148,7 @@ export interface CreatePostPayload {
   rating?: number | null;
   media?: { url: string; alt?: string }[];
   isOfficial?: boolean;
+  status?: CommunityPostStatus;
 }
 
 export interface UpdatePostPayload {
@@ -159,6 +160,8 @@ export interface UpdatePostPayload {
   destination?: string;
   hashtags?: string[];
   media?: { url: string; alt?: string }[];
+  status?: CommunityPostStatus;
+  submitForReview?: boolean;
 }
 
 export interface ModeratePostPayload {

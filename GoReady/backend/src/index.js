@@ -26,6 +26,10 @@ app.use('/api/users', usersRouter);
 app.use('/api/chuyen-di', chuyenDiRouter);
 app.use('/api/community', communityRouter);
 
+// 301 Redirect từ route Bảng tin cũ sang /cong-dong
+app.get('/news', (_req, res) => res.redirect(301, '/#/cong-dong'));
+app.get('/news/*', (req, res) => res.redirect(301, `/#/cong-dong/${req.params[0] || ''}`));
+
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 // Errors forwarded by the route handlers: answer with JSON (the client shows `error`) instead of crashing

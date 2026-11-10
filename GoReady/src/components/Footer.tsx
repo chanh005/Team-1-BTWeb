@@ -18,6 +18,11 @@ const Footer: React.FC = () => (
           <li>Tour Việt Nam</li>
           <li>Tour Quốc tế</li>
           <li>AI Smart Planner</li>
+          <li>
+            <a href="#/cong-dong" className="hover:text-primary transition-colors">
+              Cộng đồng du lịch
+            </a>
+          </li>
           <li>Ưu đãi hôm nay</li>
         </ul>
       </div>

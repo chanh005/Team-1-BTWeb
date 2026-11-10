@@ -548,7 +548,7 @@ export async function listPostsForModeration(pool, status = 'pending', page = 1,
     LEFT JOIN community_post_media m ON p.id = m.post_id
     ${whereClause}
     GROUP BY p.id
-    ORDER BY p.created_at DESC
+    ORDER BY (CASE WHEN p.status = 'pending' THEN p.created_at END) ASC NULLS LAST, p.created_at DESC
     LIMIT $${limitIdx} OFFSET $${offsetIdx}
   `;
 
@@ -1053,4 +1053,192 @@ export async function handleReport(pool, reportId, { status, note = '' }, adminU
   await logModeration(pool, adminUser.id || adminUser.email, `report_${status}`, 'report', reportId, note);
   return { success: true, report: res.rows[0] };
 }
+
+/**
+ * Danh sách bài viết của chính người dùng (mọi trạng thái: draft, pending, published, rejected, hidden)
+ */
+export async function listMyPosts(pool, user) {
+  if (!user || (!user.id && !user.email)) {
+    const err = new Error('Vui lòng đăng nhập để xem bài viết của bạn');
+    err.status = 401;
+    throw err;
+  }
+
+  const sql = `
+    SELECT p.*,
+      COALESCE(
+        json_agg(
+          json_build_object('id', m.id, 'url', m.url, 'order', m."order", 'alt', m.alt)
+        ) FILTER (WHERE m.id IS NOT NULL), '[]'::json
+      ) as media
+    FROM community_posts p
+    LEFT JOIN community_post_media m ON p.id = m.post_id
+    WHERE (p.author_id = $1 OR ($2 != '' AND LOWER(p.author_email) = LOWER($2)))
+    GROUP BY p.id
+    ORDER BY p.created_at DESC
+  `;
+
+  const { rows } = await pool.query(sql, [user.id || '', user.email || '']);
+  return rows.map(formatPostRow);
+}
+
+/**
+ * Danh sách các booking hoàn thành của user chưa được gắn bài review nào
+ */
+export async function getEligibleBookings(pool, user) {
+  if (!user || !user.email) {
+    return [];
+  }
+
+  const sql = `
+    SELECT b.id, b."bookingCode", b."tourId", b."departureDate", b."contactName", b."contactEmail", b."totalPrice", b.status,
+           t.name as "tourName", t."coverImage" as "tourCoverImage", t.destination as "tourDestination"
+    FROM bookings b
+    LEFT JOIN tours t ON (b."tourId" = t.id OR b."tourId" = t.code)
+    WHERE LOWER(b."contactEmail") = LOWER($1)
+      AND b.status = 'completed'
+      AND b.id NOT IN (
+        SELECT booking_id FROM community_posts WHERE booking_id IS NOT NULL AND status != 'rejected'
+      )
+    ORDER BY b."createdAt" DESC
+  `;
+
+  const { rows } = await pool.query(sql, [user.email]);
+  return rows.map(r => ({
+    id: r.id,
+    bookingCode: r.bookingCode || r.id,
+    tourId: r.tourId,
+    tourName: r.tourName || 'Tour GoReady',
+    tourCoverImage: r.tourCoverImage,
+    tourDestination: r.tourDestination || '',
+    departureDate: r.departureDate,
+    totalPrice: r.totalPrice,
+  }));
+}
+
+/**
+ * Thống kê tổng quan cộng đồng (Admin)
+ */
+export async function getAdminStats(pool, adminUser) {
+  if (!adminUser || adminUser.role !== 'admin') {
+    const err = new Error('Chỉ Quản trị viên mới có quyền xem thống kê');
+    err.status = 403;
+    throw err;
+  }
+
+  const [pendingRes, reportsRes, todayRes, weekRes, kindRes] = await Promise.all([
+    pool.query(`SELECT count(*)::int as count FROM community_posts WHERE status = 'pending'`),
+    pool.query(`SELECT count(*)::int as count FROM community_reports WHERE status = 'open'`),
+    pool.query(`SELECT count(*)::int as count FROM community_posts WHERE created_at::timestamptz >= CURRENT_DATE`),
+    pool.query(`SELECT count(*)::int as count FROM community_posts WHERE created_at::timestamptz >= NOW() - INTERVAL '7 days'`),
+    pool.query(`SELECT kind, is_official, count(*)::int as count FROM community_posts GROUP BY kind, is_official`),
+  ]);
+
+  const kinds = { review: 0, post: 0, official: 0 };
+  kindRes.rows.forEach(r => {
+    if (r.is_official) kinds.official += r.count;
+    else if (r.kind === 'review') kinds.review += r.count;
+    else kinds.post += r.count;
+  });
+
+  return {
+    pendingCount: pendingRes.rows[0]?.count || 0,
+    openReportsCount: reportsRes.rows[0]?.count || 0,
+    todayPostsCount: todayRes.rows[0]?.count || 0,
+    weekPostsCount: weekRes.rows[0]?.count || 0,
+    postsByKind: kinds,
+  };
+}
+
+/**
+ * Danh sách bình luận mới nhất cho Admin
+ */
+export async function listAdminComments(pool, adminUser) {
+  if (!adminUser || adminUser.role !== 'admin') {
+    const err = new Error('Chỉ Quản trị viên mới có quyền');
+    err.status = 403;
+    throw err;
+  }
+
+  const sql = `
+    SELECT c.*, p.title as "postTitle", p.slug as "postSlug"
+    FROM community_comments c
+    LEFT JOIN community_posts p ON c.post_id = p.id
+    ORDER BY c.created_at DESC
+    LIMIT 100
+  `;
+  const res = await pool.query(sql);
+  return res.rows.map(r => ({
+    id: r.id,
+    postId: r.post_id,
+    postTitle: r.postTitle || 'Bài viết',
+    postSlug: r.postSlug,
+    userId: r.user_id,
+    userName: r.user_name,
+    userAvatar: r.user_avatar,
+    content: r.content,
+    status: r.status,
+    createdAt: r.created_at,
+  }));
+}
+
+/**
+ * Danh sách tác giả đăng bài kèm trạng thái cờ chặn (Admin)
+ */
+export async function listAdminUsers(pool, adminUser) {
+  if (!adminUser || adminUser.role !== 'admin') {
+    const err = new Error('Chỉ Quản trị viên mới có quyền');
+    err.status = 403;
+    throw err;
+  }
+
+  const sql = `
+    SELECT
+      p.author_id as "userId",
+      p.author_name as "userName",
+      p.author_email as "userEmail",
+      count(*)::int as "totalPosts",
+      count(*) FILTER (WHERE p.status = 'published')::int as "publishedPosts",
+      count(*) FILTER (WHERE p.status = 'rejected')::int as "rejectedPosts",
+      COALESCE(f.is_post_banned, false) as "isPostBanned",
+      f.note as "banNote",
+      f.created_at as "bannedAt"
+    FROM community_posts p
+    LEFT JOIN community_user_flags f ON p.author_id = f.user_id
+    GROUP BY p.author_id, p.author_name, p.author_email, f.is_post_banned, f.note, f.created_at
+    ORDER BY "totalPosts" DESC
+    LIMIT 100
+  `;
+  const res = await pool.query(sql);
+  return res.rows;
+}
+
+/**
+ * Nhật ký kiểm duyệt Admin
+ */
+export async function listAdminLogs(pool, adminUser) {
+  if (!adminUser || adminUser.role !== 'admin') {
+    const err = new Error('Chỉ Quản trị viên mới có quyền');
+    err.status = 403;
+    throw err;
+  }
+
+  const sql = `
+    SELECT * FROM community_moderation_log
+    ORDER BY created_at DESC
+    LIMIT 100
+  `;
+  const res = await pool.query(sql);
+  return res.rows.map(r => ({
+    id: r.id,
+    adminId: r.admin_id,
+    action: r.action,
+    targetType: r.target_type,
+    targetId: r.target_id,
+    reason: r.reason,
+    createdAt: r.created_at,
+  }));
+}
+
+
 

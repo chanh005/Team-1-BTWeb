@@ -6,7 +6,7 @@ import TourList from './components/TourList';
 import FeaturedDestinations from './components/FeaturedDestinations';
 import DestinationTabs from './components/DestinationTabs';
 import DestinationSearchBox from './components/DestinationSearchBox';
-import NewsFeed from './components/NewsFeed';
+import CommunityIndex from './components/community/CommunityIndex';
 import TourDetailModal from './components/TourDetailModal';
 import TourDetailPage from './components/TourDetailPage';
 import SavedAndCompareModal from './components/SavedAndCompareModal';
@@ -45,7 +45,14 @@ const priceOf = (t: Tour) => t.discountPrice ?? t.price;
 function App() {
   // A link straight to #/explore?... starts on Khám phá Tour with that search already applied
   const initialExplore = React.useMemo(() => readExploreParams(), []);
-  const [view, setView] = React.useState<NavView>(initialExplore ? 'explore' : 'home');
+  const initialCommunity = React.useMemo(() => {
+    const hash = window.location.hash || '';
+    const pathname = window.location.pathname || '';
+    return hash.startsWith('#/cong-dong') || hash.startsWith('#/news') || pathname === '/cong-dong' || pathname === '/news';
+  }, []);
+  const [view, setView] = React.useState<NavView>(
+    initialCommunity ? 'community' : initialExplore ? 'explore' : 'home'
+  );
   const [accountTab, setAccountTab] = React.useState<'profile' | 'reviews' | 'settings' | 'support'>('profile');
   const [filters, setFilters] = React.useState<SearchFilterState>({ ...INITIAL_FILTERS, ...initialExplore });
   const [appliedDestination, setAppliedDestination] = React.useState(initialExplore?.destination ?? '');
@@ -387,10 +394,16 @@ function App() {
   // The address bar is the route of Khám phá Tour: Back/Forward, reloads and shared links restore the same search
   React.useEffect(() => {
     const sync = () => {
+      const hash = window.location.hash || '';
+      const pathname = window.location.pathname || '';
       const params = readExploreParams();
-      if (params) applyExploreParams(params);
-      // Back from Khám phá to the page before it (a tour route overlays the current page and is not a page change)
-      else if (!window.location.hash.startsWith('#/tour/')) setView((v) => (v === 'explore' ? 'home' : v));
+      if (params) {
+        applyExploreParams(params);
+      } else if (hash.startsWith('#/cong-dong') || hash.startsWith('#/news') || pathname === '/cong-dong' || pathname === '/news') {
+        setView('community');
+      } else if (!hash.startsWith('#/tour/')) {
+        setView((v) => (v === 'explore' || v === 'community' ? 'home' : v));
+      }
     };
     sync();
     window.addEventListener('hashchange', sync);
@@ -469,6 +482,13 @@ function App() {
         onNavigate={(v) => {
           if (tourId) dismissTour();
           setView(v);
+          if (v === 'community' || v === 'news') {
+            if (!window.location.hash.startsWith('#/cong-dong')) {
+              window.location.hash = '#/cong-dong';
+            }
+          } else if (window.location.hash.startsWith('#/cong-dong') || window.location.hash.startsWith('#/news')) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+          }
         }}
         savedCount={savedIds.length}
         compareCount={compareIds.length}
@@ -734,7 +754,14 @@ function App() {
         </>
       ) : null}
 
-      {view === 'news' && <NewsFeed />}
+      {(view === 'community' || view === 'news') && (
+        <CommunityIndex
+          tours={allTours}
+          currentUser={currentUser}
+          onOpenLogin={() => setShowLogin(true)}
+          onOpenTour={(id) => openTour(id)}
+        />
+      )}
 
       {view === 'trips' && (
         <MyTripsDashboard

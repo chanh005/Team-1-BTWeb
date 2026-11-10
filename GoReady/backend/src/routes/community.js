@@ -18,7 +18,13 @@ import {
   listComments,
   createReport,
   listReports,
-  handleReport
+  handleReport,
+  listMyPosts,
+  getEligibleBookings,
+  getAdminStats,
+  listAdminComments,
+  listAdminUsers,
+  listAdminLogs
 } from '../../../lib/community/service.js';
 
 const router = Router();
@@ -85,6 +91,32 @@ router.get('/posts', async (req, res, next) => {
     const result = await listPublicPosts(pool, options, user?.id || null);
     res.json(result);
   } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/community/my-posts
+router.get('/my-posts', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập' });
+    const posts = await listMyPosts(pool, user);
+    res.json(posts);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// GET /api/community/my-eligible-bookings
+router.get('/my-eligible-bookings', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập' });
+    const bookings = await getEligibleBookings(pool, user);
+    res.json(bookings);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 });
@@ -317,6 +349,54 @@ router.patch('/admin/reports/:id', async (req, res, next) => {
     const { status, note } = req.body;
     const result = await handleReport(pool, req.params.id, { status, note }, user);
     res.json(result);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// GET /api/community/admin/stats
+router.get('/admin/stats', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    const stats = await getAdminStats(pool, user);
+    res.json(stats);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// GET /api/community/admin/comments
+router.get('/admin/comments', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    const comments = await listAdminComments(pool, user);
+    res.json(comments);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// GET /api/community/admin/users
+router.get('/admin/users', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    const users = await listAdminUsers(pool, user);
+    res.json(users);
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// GET /api/community/admin/logs
+router.get('/admin/logs', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    const logs = await listAdminLogs(pool, user);
+    res.json(logs);
   } catch (err) {
     if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);

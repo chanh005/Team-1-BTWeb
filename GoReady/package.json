@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "db:community": "node --env-file=.env lib/community/schema.js",
     "seed:community": "node --env-file=.env lib/community/seed.js",
-    "test:community": "node --env-file=.env lib/community/test.js"
+    "test:community": "node --env-file=.env lib/community/test.js",
+    "sitemap:community": "node --env-file=.env lib/community/sitemap.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

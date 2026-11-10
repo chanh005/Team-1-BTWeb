@@ -1,8 +1,12 @@
 import React from 'react';
 import type { CommunityPostGroup } from '../types/community';
 
+export type CommunityViewMode = 'feed' | 'detail' | 'create' | 'my-posts' | 'edit';
+
 export interface CommunityRouteParams {
+  viewMode: CommunityViewMode;
   slug: string | null;
+  editPostId: string | null;
   group: CommunityPostGroup | 'all';
   destination: string;
   kind: 'all' | 'review' | 'post';
@@ -12,7 +16,6 @@ export interface CommunityRouteParams {
 
 const COMMUNITY_DETAIL_HASH = /^#\/cong-dong\/([^/?#]+)/;
 const COMMUNITY_FEED_HASH = /^#\/cong-dong(?:\?(.*))?$/;
-const LEGACY_NEWS_HASH = /^#\/news(?:\?(.*))?$/;
 
 export function readCommunityParams(): CommunityRouteParams {
   const hash = window.location.hash || '';
@@ -24,33 +27,86 @@ export function readCommunityParams(): CommunityRouteParams {
     window.history.replaceState(null, '', `#/cong-dong${search}`);
   }
 
-  // Check detail slug
+  // 1. Viết bài: #/cong-dong/viet-bai
+  if (hash === '#/cong-dong/viet-bai' || pathname === '/cong-dong/viet-bai') {
+    return {
+      viewMode: 'create',
+      slug: null,
+      editPostId: null,
+      group: 'all',
+      destination: 'all',
+      kind: 'all',
+      sort: 'newest',
+      page: 1,
+    };
+  }
+
+  // 2. Bài của tôi: #/cong-dong/bai-cua-toi
+  if (hash === '#/cong-dong/bai-cua-toi' || pathname === '/cong-dong/bai-cua-toi') {
+    return {
+      viewMode: 'my-posts',
+      slug: null,
+      editPostId: null,
+      group: 'all',
+      destination: 'all',
+      kind: 'all',
+      sort: 'newest',
+      page: 1,
+    };
+  }
+
+  // 3. Sửa bài: #/cong-dong/chinh-sua/:id
+  const editMatch = hash.match(/^#\/cong-dong\/chinh-sua\/([^/?#]+)/);
+  if (editMatch) {
+    return {
+      viewMode: 'edit',
+      slug: null,
+      editPostId: decodeURIComponent(editMatch[1]),
+      group: 'all',
+      destination: 'all',
+      kind: 'all',
+      sort: 'newest',
+      page: 1,
+    };
+  }
+
+  // 4. Chi tiết bài viết: #/cong-dong/:slug (không phải viet-bai hoặc bai-cua-toi)
   const detailMatch = hash.match(COMMUNITY_DETAIL_HASH);
   if (detailMatch) {
-    return {
-      slug: decodeURIComponent(detailMatch[1]),
-      group: 'all',
-      destination: 'all',
-      kind: 'all',
-      sort: 'newest',
-      page: 1,
-    };
+    const matchedSlug = decodeURIComponent(detailMatch[1]);
+    if (matchedSlug !== 'viet-bai' && matchedSlug !== 'bai-cua-toi') {
+      return {
+        viewMode: 'detail',
+        slug: matchedSlug,
+        editPostId: null,
+        group: 'all',
+        destination: 'all',
+        kind: 'all',
+        sort: 'newest',
+        page: 1,
+      };
+    }
   }
 
-  // Check pathname detail: /cong-dong/slug
+  // 5. Chi tiết qua pathname: /cong-dong/:slug
   const pathDetailMatch = pathname.match(/^\/cong-dong\/([^/?#]+)/);
   if (pathDetailMatch && !pathname.endsWith('.html') && !pathname.includes('.')) {
-    return {
-      slug: decodeURIComponent(pathDetailMatch[1]),
-      group: 'all',
-      destination: 'all',
-      kind: 'all',
-      sort: 'newest',
-      page: 1,
-    };
+    const matchedSlug = decodeURIComponent(pathDetailMatch[1]);
+    if (matchedSlug !== 'viet-bai' && matchedSlug !== 'bai-cua-toi') {
+      return {
+        viewMode: 'detail',
+        slug: matchedSlug,
+        editPostId: null,
+        group: 'all',
+        destination: 'all',
+        kind: 'all',
+        sort: 'newest',
+        page: 1,
+      };
+    }
   }
 
-  // Check feed query params
+  // 6. Feed với các tham số lọc: #/cong-dong?...
   const feedMatch = hash.match(COMMUNITY_FEED_HASH);
   const search = feedMatch ? feedMatch[1] ?? '' : (pathname === '/cong-dong' ? window.location.search.slice(1) : '');
   const query = new URLSearchParams(search);
@@ -62,7 +118,9 @@ export function readCommunityParams(): CommunityRouteParams {
   const page = parseInt(query.get('page') || '1', 10) || 1;
 
   return {
+    viewMode: 'feed',
     slug: null,
+    editPostId: null,
     group: ['all', 'family', 'backpack', 'deal', 'student'].includes(group) ? group : 'all',
     destination: destination.trim(),
     kind: ['all', 'review', 'post'].includes(kind) ? kind : 'all',
@@ -72,6 +130,15 @@ export function readCommunityParams(): CommunityRouteParams {
 }
 
 export const communityHref = (params: Partial<CommunityRouteParams> = {}): string => {
+  if (params.viewMode === 'create') {
+    return '#/cong-dong/viet-bai';
+  }
+  if (params.viewMode === 'my-posts') {
+    return '#/cong-dong/bai-cua-toi';
+  }
+  if (params.viewMode === 'edit' && params.editPostId) {
+    return `#/cong-dong/chinh-sua/${encodeURIComponent(params.editPostId)}`;
+  }
   if (params.slug) {
     return `#/cong-dong/${encodeURIComponent(params.slug)}`;
   }
@@ -95,6 +162,18 @@ export function pushCommunityFeed(params: Partial<CommunityRouteParams> = {}) {
 
 export function pushCommunityDetail(slug: string) {
   window.location.hash = communityHref({ slug });
+}
+
+export function pushCommunityCreate() {
+  window.location.hash = '#/cong-dong/viet-bai';
+}
+
+export function pushCommunityMyPosts() {
+  window.location.hash = '#/cong-dong/bai-cua-toi';
+}
+
+export function pushCommunityEdit(postId: string) {
+  window.location.hash = `#/cong-dong/chinh-sua/${encodeURIComponent(postId)}`;
 }
 
 export function replaceCommunityParams(params: Partial<CommunityRouteParams>) {
@@ -123,7 +202,9 @@ export function useCommunityRoute() {
     ...params,
     pushFeed: pushCommunityFeed,
     pushDetail: pushCommunityDetail,
+    pushCreate: pushCommunityCreate,
+    pushMyPosts: pushCommunityMyPosts,
+    pushEdit: pushCommunityEdit,
     replaceParams: replaceCommunityParams,
   };
 }
-

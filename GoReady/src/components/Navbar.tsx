@@ -1,6 +1,7 @@
 import React from 'react';
+import { COMMUNITY_CONFIG } from '../config/community';
 
-export type NavView = 'home' | 'explore' | 'news' | 'trips' | 'account';
+export type NavView = 'home' | 'explore' | 'news' | 'trips' | 'account' | 'community';
 
 const MOCK_NOTIFICATIONS = [
   { id: '1', type: 'booking', title: 'Tour sắp khởi hành', content: 'Tour "Khám phá Vịnh Hạ Long" của bạn sẽ khởi hành trong 3 ngày nữa. Đừng quên mang giấy tờ tùy thân!', time: '2 giờ trước', read: false },
@@ -27,7 +28,7 @@ const MAIN_LINKS: { label: string; mobileLabel: string; value: NavView }[] = [
   { label: 'Trang chủ', mobileLabel: 'Trang chủ', value: 'home' },
   { label: 'Khám phá Tour', mobileLabel: 'Khám phá', value: 'explore' },
   { label: 'Chuyến đi của tôi', mobileLabel: 'Chuyến đi', value: 'trips' },
-  { label: 'Bảng tin', mobileLabel: 'Bảng tin', value: 'news' },
+  { label: COMMUNITY_CONFIG.MENU_LABEL, mobileLabel: COMMUNITY_CONFIG.MENU_MOBILE_LABEL, value: 'community' },
 ];
 
 const USER_MENU_ITEMS = ['Trang cá nhân', 'Chuyến đi của tôi', 'Đánh giá của tôi', 'Cài đặt & bảo mật', 'Hỗ trợ'];
@@ -106,7 +107,7 @@ const Navbar: React.FC<NavbarProps> = ({
             <button
               key={link.label}
               onClick={() => onNavigate(link.value)}
-              className={`rounded-full px-4 py-2 transition-colors ${view === link.value ? 'bg-primary text-white shadow-card' : 'text-slate-600 hover:text-primary'}`}
+              className={`rounded-full px-4 py-2 transition-colors ${view === link.value || (link.value === 'community' && view === 'news') ? 'bg-primary text-white shadow-card' : 'text-slate-600 hover:text-primary'}`}
             >
               {link.label}
             </button>
@@ -274,7 +275,7 @@ const Navbar: React.FC<NavbarProps> = ({
           <button
             key={link.label}
             onClick={() => onNavigate(link.value)}
-            className={`flex-1 rounded-full px-3 py-1.5 text-center transition-colors ${view === link.value ? 'bg-primary text-white' : 'text-slate-600'}`}
+            className={`flex-1 rounded-full px-3 py-1.5 text-center transition-colors ${view === link.value || (link.value === 'community' && view === 'news') ? 'bg-primary text-white' : 'text-slate-600'}`}
           >
             {link.mobileLabel}
           </button>

@@ -7,6 +7,7 @@ import bookingsRouter from './routes/bookings.js';
 import usersRouter from './routes/users.js';
 import imagesRouter from './routes/images.js';
 import chuyenDiRouter from './routes/chuyenDi.js';
+import communityRouter from './routes/community.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -23,6 +24,11 @@ app.use('/api/tours', toursRouter);
 app.use('/api/bookings', bookingsRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/chuyen-di', chuyenDiRouter);
+app.use('/api/community', communityRouter);
+
+// 301 Redirect từ route Bảng tin cũ sang /cong-dong
+app.get('/news', (_req, res) => res.redirect(301, '/#/cong-dong'));
+app.get('/news/*', (req, res) => res.redirect(301, `/#/cong-dong/${req.params[0] || ''}`));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 

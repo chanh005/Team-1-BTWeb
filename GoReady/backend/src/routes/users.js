@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { getPool } from '../../../lib/db.js';
-import { listUsers, loginUser, registerUser, toggleUserStatus, updateUserAvatar } from '../../../lib/users.js';
+import { listUsers, loginUser, registerUser, toggleUserStatus, updateUserAvatar, loginOrRegister } from '../../../lib/users.js';
 
 const router = Router();
 const pool = getPool();
@@ -29,13 +29,18 @@ router.post('/register', async (req, res) => {
 
 // POST /api/users/login
 router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-  if (!email || !password) {
-    return res.status(400).json({ error: 'email and password are required' });
+  const { email, password, name } = req.body || {};
+  if (!email) {
+    return res.status(400).json({ error: 'email is required' });
   }
   try {
-    const user = await loginUser(pool, email, password);
-    res.json(user);
+    if (password) {
+      const user = await loginUser(pool, email, password);
+      return res.json(user);
+    }
+    const displayName = name || email.split('@')[0];
+    const user = await loginOrRegister(pool, displayName, email);
+    return res.json(user);
   } catch (err) {
     if (err.status === 401) return res.status(401).json({ error: 'invalid_credentials' });
     if (err.status === 403) return res.status(403).json({ error: 'locked' });

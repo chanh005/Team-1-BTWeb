@@ -457,7 +457,7 @@ function App() {
     const cancelled = bookings.find((b) => b.id === bookingId);
     await api.updateBookingStatus(bookingId, 'cancelled');
     // A cancelled booking gives its seats back to the departure
-    if (cancelled?.departureCode && cancelled.status !== 'cancelled') returnSeats(cancelled.departureCode, cancelled.adults + cancelled.children).catch(() => {});
+    if (cancelled?.departureCode && cancelled.status !== 'cancelled') returnSeats(cancelled.departureCode, cancelled.adults + cancelled.children).catch(() => { });
     refreshBookings();
     notify('Đã hủy tour. Yêu cầu hoàn tiền của bạn đang được xử lý.');
   };

@@ -95,3 +95,14 @@ export async function toggleUserStatus(pool, id) {
   const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
   return sanitize(rows[0]);
 }
+export async function loginOrRegister(pool, name, email) {
+  // Check if user exists
+  const { rows } = await pool.query('SELECT * FROM users WHERE lower(email) = lower($1)', [email]);
+  
+  if (rows.length > 0) {
+    return sanitize(rows[0]);
+  }
+  
+  // Auto-register if not found
+  return await registerUser(pool, name, email, randomUUID().slice(0, 12));
+}

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file=../.env --watch-path=src --watch-path=../lib src/index.js",
-    "start": "node --env-file=../.env src/index.js"
+    "start": "node --env-file=../.env src/index.js",
+    "dev:mock": "node --watch-path=src --watch-path=../lib src/mock.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

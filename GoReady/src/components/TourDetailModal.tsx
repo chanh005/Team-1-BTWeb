@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Tour, UserReview, AccountUser } from '../types';
 import { discountPercent, formatVND } from '../utils/format';
+import { onImageError } from '../utils/image';
 import InteractiveMap from './InteractiveMap';
 
 interface TourDetailModalProps {
@@ -24,6 +25,13 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
   
   const images = [tour.coverImage, ...tour.gallery];
   const pct = discountPercent(tour.price, tour.discountPrice);
+  // Tours loaded from the sheet have no map route or reviews, so those tabs are omitted for them
+  const tabs = ([
+    ['itinerary', 'Lịch trình'],
+    ['map', 'Bản đồ'],
+    ['services', 'Dịch vụ'],
+    ['reviews', 'Đánh giá'],
+  ] as [Tab, string][]).filter(([key]) => (key === 'map' ? tour.route.length > 0 : key === 'reviews' ? tour.reviews.length > 0 : true));
 
   const currentTourUserReviews = React.useMemo(() => userReviews.filter(r => r.tourId === tour.id), [userReviews, tour.id]);
   const hasReviewed = React.useMemo(() => currentUser && currentTourUserReviews.some(r => r.authorEmail === currentUser.email.toLowerCase()), [currentUser, currentTourUserReviews]);
@@ -62,7 +70,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
         <div className="overflow-y-auto">
           {/* Gallery */}
           <div className="relative h-64 sm:h-80">
-            <img src={images[activeImage]} alt={tour.name} className="h-full w-full object-cover" />
+            <img key={images[activeImage]} src={images[activeImage]} alt={tour.name} onError={onImageError} className="h-full w-full object-cover" />
             <div className="absolute inset-x-0 bottom-0 flex gap-1.5 bg-gradient-to-t from-black/50 to-transparent p-3">
               {images.map((img, i) => (
                 <button
@@ -70,7 +78,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
                   onClick={() => setActiveImage(i)}
                   className={`h-12 w-16 shrink-0 overflow-hidden rounded-lg border-2 ${activeImage === i ? 'border-accent' : 'border-white/50'}`}
                 >
-                  <img src={img} alt="" className="h-full w-full object-cover" />
+                  <img src={img} alt="" onError={onImageError} className="h-full w-full object-cover" />
                 </button>
               ))}
             </div>
@@ -81,16 +89,30 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
               <div>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   <span>{tour.destination}</span>
-                  <span>•</span>
-                  <span>{'★'.repeat(tour.hotelStars)} khách sạn</span>
+                  {tour.durationLabel && (
+                    <>
+                      <span>•</span>
+                      <span>{tour.durationLabel}</span>
+                    </>
+                  )}
+                  {tour.hotelStars > 0 && (
+                    <>
+                      <span>•</span>
+                      <span>{'★'.repeat(tour.hotelStars)} khách sạn</span>
+                    </>
+                  )}
                   <span>•</span>
                   <span>{tour.transport}</span>
                 </div>
                 <h2 className="mt-1 font-heading text-xl font-bold text-slate-900 sm:text-2xl">{tour.name}</h2>
-                <div className="mt-1 flex items-center gap-2 text-sm">
-                  <span className="font-semibold text-amber-500">★ {tour.rating.toFixed(1)}</span>
-                  <span className="text-slate-400">({tour.reviewCount} đánh giá · {tour.bookingCount.toLocaleString('vi-VN')} đã đặt)</span>
-                </div>
+                {tour.rating > 0 && (
+                  <div className="mt-1 flex items-center gap-2 text-sm">
+                    <span className="font-semibold text-amber-500">★ {tour.rating.toFixed(1)}</span>
+                    {tour.reviewCount > 0 && (
+                      <span className="text-slate-400">({tour.reviewCount} đánh giá · {tour.bookingCount.toLocaleString('vi-VN')} đã đặt)</span>
+                    )}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => onToggleSave(tour.id)}
@@ -114,12 +136,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
 
             {/* Tabs */}
             <div className="mt-6 flex gap-1 overflow-x-auto rounded-full bg-slate-100 p-1 no-scrollbar">
-              {([
-                ['itinerary', 'Lịch trình'],
-                ['map', 'Bản đồ'],
-                ['services', 'Dịch vụ'],
-                ['reviews', 'Đánh giá'],
-              ] as [Tab, string][]).map(([key, label]) => (
+              {tabs.map(([key, label]) => (
                 <button
                   key={key}
                   onClick={() => setTab(key)}
@@ -147,7 +164,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
                             <span className="absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-primary" />
                             <span className="font-semibold text-primary-700">{act.time}</span>{' '}
                             <span className="font-medium text-slate-800">{act.title}</span>
-                            <p className="text-xs text-slate-500">{act.description}</p>
+                            {act.description && <p className="text-xs text-slate-500">{act.description}</p>}
                           </li>
                         ))}
                       </ul>
@@ -281,6 +298,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
           <div>
             {pct > 0 && <div className="text-xs text-slate-400 line-through">{formatVND(tour.price)}</div>}
             <div className="font-heading text-lg font-bold text-primary-700">{formatVND(tour.discountPrice ?? tour.price)}</div>
+            {tour.childPrice && <div className="text-[11px] text-slate-400">Trẻ em: {formatVND(tour.childPrice)}</div>}
           </div>
           <button
             onClick={() => onBook(tour)}

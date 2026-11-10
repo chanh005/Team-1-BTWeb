@@ -1,6 +1,11 @@
 import React from 'react';
 import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, Tour } from '../types';
-import { formatVND, formatDateLong } from '../utils/format';
+import { formatVND } from '../utils/format';
+import TripCard from './my-trips/TripCard';
+import TripDetail from './my-trips/TripDetail';
+import { useTrips } from './my-trips/useTrips';
+import { departureMoment, tripPhase } from './my-trips/tripUtils';
+import type { ChuyenDi } from './my-trips/types';
 
 interface MyTripsDashboardProps {
   bookings: Booking[];
@@ -21,76 +26,6 @@ const refundPercentFor = (daysUntilDeparture: number): number => {
 };
 
 const CATEGORIES: ChecklistCategory[] = ['Giấy tờ tùy thân', 'Quần áo & Giày dép', 'Thuốc men & Y tế', 'Thiết bị điện tử & Tiền tệ'];
-
-const useCountdown = (targetIso: string) => {
-  const [now, setNow] = React.useState(Date.now());
-  React.useEffect(() => {
-    const t = window.setInterval(() => setNow(Date.now()), 1000);
-    return () => window.clearInterval(t);
-  }, []);
-  const diff = Math.max(0, new Date(targetIso).getTime() - now);
-  const days = Math.floor(diff / 86400000);
-  const hours = Math.floor((diff % 86400000) / 3600000);
-  const minutes = Math.floor((diff % 3600000) / 60000);
-  const seconds = Math.floor((diff % 60000) / 1000);
-  return { days, hours, minutes, seconds, expired: diff <= 0 };
-};
-
-const CountdownBlock: React.FC<{ value: number; label: string }> = ({ value, label }) => (
-  <div className="flex flex-col items-center rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
-    <span className="font-heading text-xl font-bold tabular-nums">{String(value).padStart(2, '0')}</span>
-    <span className="text-[10px] uppercase tracking-wide text-white/80">{label}</span>
-  </div>
-);
-
-const UpcomingCard: React.FC<{ booking: Booking; tour?: Tour; onRequestCancel: (booking: Booking) => void }> = ({ booking, tour, onRequestCancel }) => {
-  const cd = useCountdown(booking.departureDate);
-  const cancelled = booking.status === 'cancelled';
-  return (
-    <div className={`overflow-hidden rounded-2xl border shadow-soft ${cancelled ? 'border-slate-200 opacity-70' : 'border-slate-100'}`}>
-      <div className={`relative p-5 text-white ${cancelled ? 'bg-slate-400' : 'bg-gradient-to-br from-primary-600 to-primary-500'}`}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs text-white/80">Mã booking {booking.bookingCode}</p>
-            <h3 className="font-heading text-lg font-bold">{tour?.name ?? 'Chuyến đi'}</h3>
-            <p className="text-xs text-white/80">Khởi hành {formatDateLong(booking.departureDate)}</p>
-          </div>
-          {tour && <img src={tour.coverImage} alt={tour.name} className="h-16 w-16 shrink-0 rounded-xl object-cover" />}
-        </div>
-        <div className="mt-4 flex gap-2">
-          {cancelled ? (
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">❌ Đã hủy tour</span>
-          ) : cd.expired ? (
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">Chúc bạn lên đường vui vẻ! 🎉</span>
-          ) : (
-            <>
-              <CountdownBlock value={cd.days} label="Ngày" />
-              <CountdownBlock value={cd.hours} label="Giờ" />
-              <CountdownBlock value={cd.minutes} label="Phút" />
-              <CountdownBlock value={cd.seconds} label="Giây" />
-            </>
-          )}
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-3 p-4 text-xs sm:grid-cols-4">
-        <div><p className="text-slate-400">Điểm đón</p><p className="font-semibold text-slate-700">{booking.pickupLocation}</p></div>
-        <div><p className="text-slate-400">Giờ đón</p><p className="font-semibold text-slate-700">{booking.pickupTime}</p></div>
-        <div><p className="text-slate-400">Khách sạn</p><p className="font-semibold text-slate-700">{booking.hotelName}</p></div>
-        <div><p className="text-slate-400">HDV / Hotline 24/7</p><p className="font-semibold text-slate-700">{booking.guideName} — {booking.guidePhone}</p></div>
-      </div>
-      {!cancelled && !cd.expired && (
-        <div className="border-t border-slate-100 p-3">
-          <button
-            onClick={() => onRequestCancel(booking)}
-            className="w-full rounded-xl border border-red-200 py-2 text-xs font-bold text-red-500 transition hover:bg-red-50"
-          >
-            Hủy tour & yêu cầu hoàn tiền
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
 
 const CancelBookingModal: React.FC<{
   booking: Booking;
@@ -156,16 +91,87 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
   const [newItemLabel, setNewItemLabel] = React.useState('');
   const [newItemCategory, setNewItemCategory] = React.useState<ChecklistCategory>('Giấy tờ tùy thân');
   const [cancelTarget, setCancelTarget] = React.useState<Booking | null>(null);
+  const [selectedTripId, setSelectedTripId] = React.useState<string | null>(null);
 
-  const now = Date.now();
-  const isFuture = (b: Booking) => new Date(b.departureDate).getTime() >= now;
-  const activeUpcoming = bookings.filter((b) => b.status !== 'cancelled' && isFuture(b)).sort((a, b) => a.departureDate.localeCompare(b.departureDate));
-  const cancelledUpcoming = bookings.filter((b) => b.status === 'cancelled' && isFuture(b)).sort((a, b) => a.departureDate.localeCompare(b.departureDate));
+  // Trips (ChuyenDi) exist only for orders whose payment succeeded; unpaid orders never reach this list.
+  const { trips, loading, error, reload } = useTrips(bookings);
+
+  // Re-evaluate upcoming / completed as time passes, without waiting for the next data refresh
+  const [now, setNow] = React.useState(Date.now());
+  React.useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 30000);
+    return () => window.clearInterval(t);
+  }, []);
+
+  // The live booking list is fresher than the trip snapshot (e.g. right after a cancellation)
+  const entries = trips.map((trip) => {
+    const status = bookings.find((b) => b.id === trip.maDon)?.status ?? trip.don.trangThai;
+    return { trip, phase: tripPhase(trip, status, now) };
+  });
+  const byDeparture = (a: { trip: ChuyenDi }, b: { trip: ChuyenDi }) => departureMoment(a.trip).getTime() - departureMoment(b.trip).getTime();
+  const activeUpcoming = entries.filter((e) => e.phase === 'upcoming' || e.phase === 'ongoing').sort(byDeparture);
+  const cancelledUpcoming = entries.filter((e) => e.phase === 'cancelled' && new Date(`${e.trip.ngayKetThuc}T23:59:59`).getTime() >= now).sort(byDeparture);
   const upcoming = [...activeUpcoming, ...cancelledUpcoming];
-  const past = bookings.filter((b) => b.status !== 'cancelled' && !isFuture(b));
+  const past = entries.filter((e) => e.phase === 'completed').sort((a, b) => byDeparture(b, a));
 
   const tourFor = (id: string) => tours.find((t) => t.id === id);
+  const coverFor = (trip: ChuyenDi) => tourFor(trip.don.tourId)?.coverImage;
+  const highlightsFor = (trip: ChuyenDi) => tourFor(trip.don.tourId)?.highlights;
   const checkedCount = checklist.filter((c) => c.checked).length;
+
+  const selected = selectedTripId ? entries.find((e) => e.trip.maChuyenDi === selectedTripId) ?? null : null;
+  const openTrip = (trip: ChuyenDi) => {
+    setSelectedTripId(trip.maChuyenDi);
+    window.scrollTo({ top: 0 });
+  };
+  const requestCancel = (trip: ChuyenDi) => {
+    const booking = bookings.find((b) => b.id === trip.maDon);
+    if (booking) setCancelTarget(booking);
+  };
+
+  const cancelModal = cancelTarget && (
+    <CancelBookingModal
+      booking={cancelTarget}
+      tourName={trips.find((t) => t.maDon === cancelTarget.id)?.tenChuyenDi ?? tourFor(cancelTarget.tourId)?.name ?? 'Chuyến đi'}
+      onClose={() => setCancelTarget(null)}
+      onConfirm={async () => {
+        await onCancelBooking(cancelTarget.id);
+        setCancelTarget(null);
+        void reload();
+      }}
+    />
+  );
+
+  if (selected) {
+    return (
+      <div className="container-px mx-auto py-8">
+        <TripDetail
+          trip={selected.trip}
+          phase={selected.phase}
+          coverFallback={coverFor(selected.trip)}
+          tourHighlights={highlightsFor(selected.trip)}
+          onBack={() => setSelectedTripId(null)}
+          onRequestCancel={requestCancel}
+        />
+        {cancelModal}
+      </div>
+    );
+  }
+
+  const tripsPlaceholder = (emptyIcon: string, emptyText: string) =>
+    loading && trips.length === 0 ? (
+      <EmptyState icon="⏳" text="Đang tải chuyến đi của bạn..." />
+    ) : error && trips.length === 0 ? (
+      <div className="grid place-items-center rounded-2xl border border-dashed border-red-200 py-16 text-center">
+        <div>
+          <p className="text-3xl">⚠️</p>
+          <p className="mt-2 max-w-xs text-sm text-red-500">Không tải được chuyến đi: {error}</p>
+          <button onClick={() => void reload()} className="mt-3 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white hover:bg-primary-600">Thử lại</button>
+        </div>
+      </div>
+    ) : (
+      <EmptyState icon={emptyIcon} text={emptyText} />
+    );
 
   return (
     <div className="container-px mx-auto py-8">
@@ -189,14 +195,16 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
         ))}
       </div>
 
+      {error && trips.length > 0 && <p className="mt-3 text-xs text-red-500">Không cập nhật được chuyến đi mới nhất ({error}). Đang hiển thị dữ liệu đã tải trước đó.</p>}
+
       <div className="mt-6">
         {tab === 'upcoming' &&
           (upcoming.length === 0 ? (
-            <EmptyState icon="🧳" text="Chưa có chuyến đi sắp tới. Hãy khám phá và đặt tour ngay!" />
+            tripsPlaceholder('🧳', 'Chưa có chuyến đi sắp tới. Hãy khám phá và đặt tour ngay!')
           ) : (
             <div className="grid gap-5 lg:grid-cols-2">
-              {upcoming.map((b) => (
-                <UpcomingCard key={b.id} booking={b} tour={tourFor(b.tourId)} onRequestCancel={setCancelTarget} />
+              {upcoming.map(({ trip, phase }) => (
+                <TripCard key={trip.maChuyenDi} trip={trip} phase={phase} coverFallback={coverFor(trip)} onOpen={openTrip} onRequestCancel={requestCancel} />
               ))}
             </div>
           ))}
@@ -256,20 +264,24 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
 
         {tab === 'past' &&
           (past.length === 0 ? (
-            <EmptyState icon="🗂️" text="Bạn chưa có chuyến đi nào đã hoàn thành." />
+            tripsPlaceholder('🗂️', 'Bạn chưa có chuyến đi nào đã hoàn thành.')
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {past.map((b) => {
-                const t = tourFor(b.tourId);
+              {past.map(({ trip }) => {
+                const cover = trip.anhBia || coverFor(trip);
                 return (
-                  <div key={b.id} className="overflow-hidden rounded-xl border border-slate-100">
-                    {t && <img src={t.coverImage} alt={t.name} className="h-28 w-full object-cover grayscale" />}
+                  <button
+                    key={trip.maChuyenDi}
+                    onClick={() => openTrip(trip)}
+                    className="overflow-hidden rounded-xl border border-slate-100 bg-white text-left transition hover:shadow-card"
+                  >
+                    {cover && <img src={cover} alt={trip.tenChuyenDi} className="h-28 w-full object-cover grayscale" />}
                     <div className="p-3">
-                      <p className="text-xs text-slate-400">{b.bookingCode} · {formatDateLong(b.departureDate)}</p>
-                      <h4 className="text-sm font-bold text-slate-800">{t?.name ?? 'Chuyến đi'}</h4>
-                      <p className="mt-1 text-xs font-semibold text-primary-700">{formatVND(b.totalPrice)} — Hóa đơn điện tử</p>
+                      <p className="text-xs text-slate-400">{trip.don.bookingCode} · {new Date(`${trip.ngayKhoiHanh}T00:00:00`).toLocaleDateString('vi-VN', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' })}</p>
+                      <h4 className="text-sm font-bold text-slate-800">{trip.tenChuyenDi}</h4>
+                      <p className="mt-1 text-xs font-semibold text-primary-700">{formatVND(trip.don.tongTien)} — Xem lại hành trình & vé</p>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -291,17 +303,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
           ))}
       </div>
 
-      {cancelTarget && (
-        <CancelBookingModal
-          booking={cancelTarget}
-          tourName={tourFor(cancelTarget.tourId)?.name ?? 'Chuyến đi'}
-          onClose={() => setCancelTarget(null)}
-          onConfirm={async () => {
-            await onCancelBooking(cancelTarget.id);
-            setCancelTarget(null);
-          }}
-        />
-      )}
+      {cancelModal}
     </div>
   );
 };

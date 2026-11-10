@@ -10,5 +10,11 @@
       "destination": "/#/cong-dong",
       "permanent": true
     }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    }
   ]
 }

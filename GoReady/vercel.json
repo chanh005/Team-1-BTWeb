@@ -1,16 +1,4 @@
 {
-  "redirects": [
-    {
-      "source": "/news",
-      "destination": "/#/cong-dong",
-      "permanent": true
-    },
-    {
-      "source": "/news/:path*",
-      "destination": "/#/cong-dong",
-      "permanent": true
-    }
-  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

@@ -1,5 +1,4 @@
 import React from 'react';
-import { COMMUNITY_CONFIG } from '../config/community';
 
 export type NavView = 'home' | 'explore' | 'news' | 'trips' | 'account' | 'community';
 
@@ -28,7 +27,7 @@ const MAIN_LINKS: { label: string; mobileLabel: string; value: NavView }[] = [
   { label: 'Trang chủ', mobileLabel: 'Trang chủ', value: 'home' },
   { label: 'Khám phá Tour', mobileLabel: 'Khám phá', value: 'explore' },
   { label: 'Chuyến đi của tôi', mobileLabel: 'Chuyến đi', value: 'trips' },
-  { label: COMMUNITY_CONFIG.MENU_LABEL, mobileLabel: COMMUNITY_CONFIG.MENU_MOBILE_LABEL, value: 'community' },
+  { label: 'Cộng đồng', mobileLabel: 'Cộng đồng', value: 'community' },
 ];
 
 const USER_MENU_ITEMS = ['Trang cá nhân', 'Chuyến đi của tôi', 'Đánh giá của tôi', 'Cài đặt & bảo mật', 'Hỗ trợ'];

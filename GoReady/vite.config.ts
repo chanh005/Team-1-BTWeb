@@ -23,27 +23,8 @@ function redirectAdminTrailingSlash(): Plugin {
   };
 }
 
-// Dev-only: 301 redirect từ route /news cũ sang /cong-dong
-function redirectLegacyNews(): Plugin {
-  return {
-    name: 'redirect-legacy-news',
-    configureServer(server) {
-      server.middlewares.use((req, res, next) => {
-        if (req.url && (req.url === '/news' || req.url.startsWith('/news/'))) {
-          res.statusCode = 301;
-          const sub = req.url.replace(/^\/news\/?/, '');
-          res.setHeader('Location', sub ? `/#/cong-dong/${sub}` : '/#/cong-dong');
-          res.end();
-          return;
-        }
-        next();
-      });
-    },
-  };
-}
-
 export default defineConfig({
-  plugins: [react(), redirectAdminTrailingSlash(), redirectLegacyNews()],
+  plugins: [react(), redirectAdminTrailingSlash()],
   server: {
     port: 5183,
     // Local dev only: forwards /api/* to the local Express server (backend/)

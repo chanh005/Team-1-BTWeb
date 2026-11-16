@@ -6,11 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "preview": "vite preview",
-    "db:community": "node --env-file=.env lib/community/schema.js",
-    "seed:community": "node --env-file=.env lib/community/seed.js",
-    "test:community": "node --env-file=.env lib/community/test.js",
-    "sitemap:community": "node --env-file=.env lib/community/sitemap.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

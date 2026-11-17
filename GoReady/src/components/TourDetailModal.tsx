@@ -104,7 +104,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
                   <span>•</span>
                   <span>{tour.transport}</span>
                 </div>
-                <h2 className="mt-1 font-heading text-xl font-bold text-slate-900 sm:text-2xl">{tour.name}</h2>
+                <h2 className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">{tour.name}</h2>
                 {tour.rating > 0 && (
                   <div className="mt-1 flex items-center gap-2 text-sm">
                     <span className="font-semibold text-amber-500">★ {tour.rating.toFixed(1)}</span>
@@ -156,7 +156,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
                     <div key={day.day} className="rounded-xl border border-slate-100 p-4">
                       <div className="flex items-center gap-2">
                         <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-white">{day.day}</span>
-                        <h4 className="font-heading text-sm font-bold text-slate-800">{day.title}</h4>
+                        <h4 className="text-sm font-bold text-slate-800">{day.title}</h4>
                       </div>
                       <ul className="mt-3 space-y-2 border-l-2 border-accent/60 pl-4">
                         {day.activities.map((act, i) => (
@@ -297,7 +297,7 @@ const TourDetailModal: React.FC<TourDetailModalProps> = ({ tour, isSaved, curren
         <div className="flex items-center justify-between gap-3 border-t border-slate-100 bg-white p-4 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
           <div>
             {pct > 0 && <div className="text-xs text-slate-400 line-through">{formatVND(tour.price)}</div>}
-            <div className="font-heading text-lg font-bold text-primary-700">{formatVND(tour.discountPrice ?? tour.price)}</div>
+            <div className="text-lg font-bold text-primary-700">{formatVND(tour.discountPrice ?? tour.price)}</div>
             {tour.childPrice && <div className="text-[11px] text-slate-400">Trẻ em: {formatVND(tour.childPrice)}</div>}
           </div>
           <button

@@ -43,13 +43,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, 
   );
 
   return (
-    <div className="min-h-screen bg-surface font-body">
+    <div className="min-h-screen bg-surface">
       <div className="flex min-h-screen">
         <aside className="hidden w-64 shrink-0 flex-col gap-6 bg-slate-900 px-4 py-6 lg:flex">
           <div className="flex items-center gap-2 px-1.5">
-            <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white text-lg font-heading font-bold shadow-card">G</span>
+            <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white text-lg font-bold shadow-card">G</span>
             <div>
-              <p className="font-heading text-base font-bold text-white">
+              <p className="text-base font-bold text-white">
                 Go<span className="text-primary-300">Ready</span>
               </p>
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Admin Console</p>
@@ -72,7 +72,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, 
             >
               ☰
             </button>
-            <h1 className="font-heading text-lg font-bold text-slate-900">{NAV_ITEMS.find((n) => n.value === page)?.label}</h1>
+            <h1 className="t-h2 text-slate-900">{NAV_ITEMS.find((n) => n.value === page)?.label}</h1>
             <div className="flex items-center gap-3">
               <span className="hidden text-sm font-semibold text-slate-600 sm:inline">Xin chào, {adminName}</span>
               <button
@@ -94,8 +94,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, 
           <div className="absolute inset-y-0 left-0 flex w-64 flex-col gap-6 bg-slate-900 px-4 py-6">
             <div className="flex items-center justify-between px-1.5">
               <div className="flex items-center gap-2">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white text-lg font-heading font-bold shadow-card">G</span>
-                <p className="font-heading text-base font-bold text-white">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white text-lg font-bold shadow-card">G</span>
+                <p className="text-base font-bold text-white">
                   Go<span className="text-primary-300">Ready</span>
                 </p>
               </div>

@@ -175,7 +175,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
 
   return (
     <div className="container-px mx-auto py-8">
-      <h2 className="font-heading text-2xl font-bold text-slate-900">Chuyến đi của tôi</h2>
+      <h2 className="text-2xl font-bold text-slate-900">Chuyến đi của tôi</h2>
       <p className="mt-1 text-sm text-slate-500">Theo dõi hành trình sắp tới, chuẩn bị hành lý và xem lại các chuyến đã hoàn thành.</p>
 
       <div className="mt-5 flex gap-1 overflow-x-auto rounded-full bg-slate-100 p-1 text-sm font-semibold no-scrollbar">
@@ -294,7 +294,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
             <div className="grid gap-4 sm:grid-cols-2">
               {aiPlans.map((p, idx) => (
                 <div key={`${p.destination}-${p.days}-${idx}`} className="rounded-2xl border border-slate-100 p-4">
-                  <h4 className="font-heading text-sm font-bold text-slate-800">Lịch trình {p.days} ngày — {p.destination}</h4>
+                  <h4 className="text-sm font-bold text-slate-800">Lịch trình {p.days} ngày — {p.destination}</h4>
                   <p className="mt-1 text-xs text-slate-500">Dự toán: <span className="font-semibold text-primary-700">{formatVND(p.totalCost)}</span></p>
                   <p className="mt-1 text-xs text-slate-500">{p.bestTime}</p>
                 </div>

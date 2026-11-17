@@ -24,7 +24,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, phase, coverFallback, onOpen,
           <div className="flex items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="text-xs text-white/80">Mã đơn {trip.don.bookingCode}</p>
-              <h3 className="font-heading text-lg font-bold leading-snug">{trip.tenChuyenDi}</h3>
+              <h3 className="text-lg font-bold leading-snug">{trip.tenChuyenDi}</h3>
               <p className="text-xs text-white/80">
                 Khởi hành {fmtDateLong(trip.ngayKhoiHanh)} · {durationLabel(trip)}
               </p>

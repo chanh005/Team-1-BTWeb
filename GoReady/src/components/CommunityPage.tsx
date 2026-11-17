@@ -36,7 +36,7 @@ export const CommunityPage: React.FC<{ currentUser: AccountUser | null }> = ({ c
             aria-label="Các mục Cộng đồng"
             className="flex gap-2 overflow-x-auto pb-1 lg:sticky lg:top-24 lg:flex-col lg:gap-1 lg:overflow-visible lg:rounded-2xl lg:border lg:border-slate-100 lg:bg-white lg:p-3 lg:shadow-soft"
           >
-            <div className="hidden px-3 pb-2 pt-1 font-heading text-xs font-bold uppercase tracking-wide text-slate-400 lg:block">
+            <div className="hidden px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-wide text-slate-400 lg:block">
               Cộng đồng
             </div>
             {COMMUNITY_SECTIONS.map((s) => {

@@ -34,16 +34,16 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     <div className="grid min-h-screen place-items-center bg-gradient-to-br from-slate-900 via-slate-800 to-primary-900 px-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-card sm:p-8">
         <div className="flex items-center gap-2">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-white text-lg font-heading font-bold shadow-card">G</span>
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-white text-lg font-bold shadow-card">G</span>
           <div>
-            <p className="font-heading text-lg font-bold text-slate-900">
+            <p className="text-lg font-bold text-slate-900">
               Go<span className="text-primary">Ready</span>
             </p>
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Admin Console</p>
           </div>
         </div>
 
-        <h1 className="mt-6 font-heading text-xl font-bold text-slate-900">Đăng nhập quản trị</h1>
+        <h1 className="mt-6 text-xl font-bold text-slate-900">Đăng nhập quản trị</h1>
         <p className="mt-1 text-sm text-slate-500">Dành cho đội ngũ vận hành GoReady. Chỉ tài khoản có quyền admin mới truy cập được.</p>
 
         {error && (

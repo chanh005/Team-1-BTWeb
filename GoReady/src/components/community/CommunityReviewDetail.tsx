@@ -51,14 +51,14 @@ const TourCard: React.FC = () => (
         Lịch trình chuẩn như bài viết
       </span>
     </div>
-    <h3 className="mt-3 font-heading text-base font-bold text-slate-900">Tour Đà Nẵng – Bà Nà – Hội An 3N2Đ</h3>
+    <h3 className="mt-3 text-base font-bold text-slate-900">Tour Đà Nẵng – Bà Nà – Hội An 3N2Đ</h3>
     <p className="mt-1 text-xs text-slate-500">Khởi hành hàng ngày · [Điểm]/5 ([N] đánh giá thực tế)</p>
     <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
       Dùng voucher GoPoint giảm ngay [số tiền] khi đặt tour này
     </p>
     <div className="mt-3 flex items-end justify-between">
       <span className="text-xs text-slate-500">Giá trọn gói, không phí ẩn</span>
-      <b className="font-heading text-lg text-primary">[Giá tour] / người</b>
+      <b className="text-lg text-primary">[Giá tour] / người</b>
     </div>
     <a
       href="#/explore"
@@ -113,7 +113,7 @@ export const CommunityReviewDetail: React.FC = () => {
             </button>
           </div>
 
-          <h2 className="font-heading text-2xl font-extrabold leading-snug text-slate-900">
+          <h2 className="text-2xl font-extrabold leading-snug text-slate-900">
             Kinh nghiệm thực tế đưa bé 3 tuổi đi Bà Nà Hills: lịch trình thảnh thơi, không phí ẩn
           </h2>
 
@@ -155,7 +155,7 @@ export const CommunityReviewDetail: React.FC = () => {
             <TourCard />
           </div>
 
-          <h3 className="font-heading text-lg font-bold text-slate-900">Bàn luận · {38 + comments.length - COMMENTS.length}</h3>
+          <h3 className="text-lg font-bold text-slate-900">Bàn luận · {38 + comments.length - COMMENTS.length}</h3>
           <div className="flex gap-2">
             <input
               value={draft}
@@ -195,7 +195,7 @@ export const CommunityReviewDetail: React.FC = () => {
             Xem thêm 36 bình luận
           </button>
 
-          <h3 className="mt-2 font-heading text-lg font-bold text-slate-900">Bài review liên quan</h3>
+          <h3 className="mt-2 text-lg font-bold text-slate-900">Bài review liên quan</h3>
           <div className="grid gap-3 sm:grid-cols-2">
             {RELATED.map((t) => (
               <a key={t} href={communitySectionHref('review')} className="overflow-hidden rounded-xl border border-slate-200 hover:shadow-card">

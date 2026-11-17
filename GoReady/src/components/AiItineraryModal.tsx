@@ -44,7 +44,7 @@ const AiItineraryModal: React.FC<AiItineraryModalProps> = ({ onClose, onSavePlan
           <div className="flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-accent text-lg text-primary-800">✨</span>
             <div>
-              <h3 className="font-heading text-base font-bold">AI Smart Travel Planner</h3>
+              <h3 className="text-base font-bold">AI Smart Travel Planner</h3>
               <p className="text-[11px] text-white/80">Lập lịch trình cá nhân hóa chỉ trong vài giây</p>
             </div>
           </div>
@@ -126,7 +126,7 @@ const AiItineraryModal: React.FC<AiItineraryModalProps> = ({ onClose, onSavePlan
           {result && (
             <div className="mt-6 space-y-5 border-t border-slate-100 pt-5">
               <div className="flex items-center justify-between">
-                <h4 className="font-heading text-base font-bold text-slate-900">
+                <h4 className="text-base font-bold text-slate-900">
                   Lịch trình {result.days} ngày tại {result.destination}
                 </h4>
                 <span className="rounded-full bg-cream px-3 py-1 text-xs font-semibold text-primary-800">💡 Gợi ý bởi AI</span>

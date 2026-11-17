@@ -37,14 +37,14 @@ const Dashboard: React.FC<DashboardProps> = ({ tours, bookings, users }) => {
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{s.label}</span>
               <span className="text-lg" aria-hidden>{s.icon}</span>
             </div>
-            <p className="mt-3 font-heading text-2xl font-bold text-slate-900">{s.value}</p>
+            <p className="mt-3 t-price text-slate-900">{s.value}</p>
           </div>
         ))}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft">
-          <h2 className="font-heading text-base font-bold text-slate-900">Tour phổ biến nhất</h2>
+          <h2 className="text-base font-bold text-slate-900">Tour phổ biến nhất</h2>
           <ul className="mt-4 flex flex-col gap-3">
             {topTours.map((t, i) => (
               <li key={t.id} className="flex items-center gap-3">
@@ -61,7 +61,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tours, bookings, users }) => {
         </div>
 
         <div className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft">
-          <h2 className="font-heading text-base font-bold text-slate-900">Đơn đặt tour gần đây</h2>
+          <h2 className="text-base font-bold text-slate-900">Đơn đặt tour gần đây</h2>
           <ul className="mt-4 flex flex-col gap-3">
             {recentBookings.map((b) => (
               <li key={b.id} className="flex items-center justify-between gap-3">

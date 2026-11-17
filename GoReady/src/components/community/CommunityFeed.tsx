@@ -112,7 +112,7 @@ export const CommunityFeed: React.FC = () => {
     <section className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start gap-4">
         <div>
-          <h2 className="font-heading text-2xl font-extrabold text-slate-900">Feed chính</h2>
+          <h2 className="text-2xl font-extrabold text-slate-900">Feed chính</h2>
           <p className="mt-1 text-[15px] text-slate-500">Khám phá bài chia sẻ của cộng đồng</p>
         </div>
         <input
@@ -196,7 +196,7 @@ export const CommunityFeed: React.FC = () => {
                     <span className="rounded-full bg-green-100 px-2 py-0.5 font-semibold text-green-800">Verified Tour</span>
                   )}
                 </div>
-                <h3 className="font-heading text-[17px] font-bold leading-snug text-slate-900">
+                <h3 className="text-[17px] font-bold leading-snug text-slate-900">
                   <a href={communitySectionHref('review')} className="hover:text-primary">
                     {p.title}
                   </a>
@@ -227,7 +227,7 @@ export const CommunityFeed: React.FC = () => {
         {/* Cột phải */}
         <aside className="flex flex-col gap-4">
           <div className="rounded-2xl bg-sky-50 p-4">
-            <p className="font-heading text-[15px] font-bold text-slate-900">Chia sẻ chuyến đi của bạn</p>
+            <p className="text-[15px] font-bold text-slate-900">Chia sẻ chuyến đi của bạn</p>
             <p className="mt-1 text-[13px] text-slate-600">
               Ảnh thật và tour đã đi giúp bài được gắn Verified và nhận GoPoint.
             </p>
@@ -240,7 +240,7 @@ export const CommunityFeed: React.FC = () => {
           </div>
 
           <div className="rounded-2xl border border-slate-200 p-4">
-            <p className="font-heading text-[15px] font-bold text-slate-900">Hashtag đang nổi</p>
+            <p className="text-[15px] font-bold text-slate-900">Hashtag đang nổi</p>
             <ul className="mt-3 space-y-2 text-[13px]">
               {TRENDING.map((t) => (
                 <li key={t.tag} className="flex justify-between">
@@ -252,7 +252,7 @@ export const CommunityFeed: React.FC = () => {
           </div>
 
           <div className="rounded-2xl border border-slate-200 p-4">
-            <p className="font-heading text-[15px] font-bold text-slate-900">Thổ địa nổi bật tuần này</p>
+            <p className="text-[15px] font-bold text-slate-900">Thổ địa nổi bật tuần này</p>
             <ul className="mt-3 space-y-3">
               {FEATURED_GUIDES.map((g) => (
                 <li key={g.initials} className="flex items-center gap-2.5 text-[13px]">

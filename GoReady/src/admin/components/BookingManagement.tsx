@@ -43,7 +43,7 @@ const BookingManagement: React.FC<BookingManagementProps> = ({ bookings, tours, 
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-soft">
-        <table className="w-full min-w-[820px] text-left text-sm">
+        <table className="w-full min-w-[820px] text-left t-caption">
           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3">Mã đơn</th>
@@ -60,7 +60,7 @@ const BookingManagement: React.FC<BookingManagementProps> = ({ bookings, tours, 
               const statusOpt = STATUS_OPTIONS.find((s) => s.value === b.status)!;
               return (
                 <tr key={b.id}>
-                  <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-700">{b.bookingCode}</td>
+                  <td className="px-4 py-3 tabular-nums text-xs font-semibold text-slate-700">{b.bookingCode}</td>
                   <td className="px-4 py-3">
                     <p className="font-semibold text-slate-800">{b.contactName}</p>
                     <p className="text-xs text-slate-400">{b.contactPhone}</p>

@@ -335,7 +335,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
       >
         <div className="flex items-center justify-between border-b border-slate-100 p-4">
           <div>
-            <h3 className="font-heading text-base font-bold text-slate-900">
+            <h3 className="text-base font-bold text-slate-900">
               {step === 'form' && 'Đặt tour'}
               {step === 'payment' && 'Xác nhận & thanh toán'}
               {step === 'ticket' && 'Đặt tour thành công'}
@@ -558,7 +558,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
                 </span>
                 <div className="flex-1">
                   <p className="text-sm font-semibold">
-                    Chỗ của bạn được giữ trong <span className="font-heading text-base font-bold tabular-nums">{minutes}:{seconds}</span>
+                    Chỗ của bạn được giữ trong <span className="text-base font-bold tabular-nums">{minutes}:{seconds}</span>
                   </p>
                   <p className="text-[11px] opacity-80">
                     {departure ? 'Suất khởi hành này đã được khóa cho bạn, khách khác chưa thể đặt. ' : ''}Hết giờ chỗ sẽ được nhả tự động.
@@ -621,7 +621,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
 
                 <div className="mt-3 flex items-end justify-between gap-4 border-t border-dashed border-slate-200 pt-3">
                   <span className="text-sm font-semibold text-slate-700">Tổng thanh toán</span>
-                  <span className="font-heading text-2xl font-bold text-primary-700">{formatVND(total)}</span>
+                  <span className="text-2xl font-bold text-primary-700">{formatVND(total)}</span>
                 </div>
               </div>
 
@@ -701,7 +701,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
                     alt="QR thanh toán"
                     className="h-48 w-48 rounded-xl border border-slate-100"
                   />
-                  <p className="font-heading text-lg font-bold text-primary-700">{formatVND(total)}</p>
+                  <p className="text-lg font-bold text-primary-700">{formatVND(total)}</p>
                   <div className="w-full space-y-1.5 rounded-xl bg-slate-50 p-3 text-left text-xs">
                     <div className="flex justify-between"><span className="text-slate-500">Ngân hàng / ví thụ hưởng</span><span className="font-semibold">{QR_INFO[paymentMethod].bank}</span></div>
                     <div className="flex justify-between"><span className="text-slate-500">Chủ tài khoản</span><span className="font-semibold">CTY TNHH GOREADY</span></div>
@@ -766,7 +766,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
                 <div className="grid h-16 w-16 place-items-center rounded-full bg-emerald-100 text-3xl font-bold text-emerald-600" aria-hidden>
                   ✓
                 </div>
-                <h4 className="mt-3 font-heading text-xl font-bold text-slate-900">Thanh toán thành công!</h4>
+                <h4 className="mt-3 text-xl font-bold text-slate-900">Thanh toán thành công!</h4>
                 <p className="mt-1 text-sm text-slate-500">
                   {PAYMENT_LABEL[booking.paymentMethod]} · <b className="text-slate-700">{formatVND(booking.totalPrice)}</b>
                 </p>
@@ -786,7 +786,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
                 <div className="flex items-start justify-between">
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-primary-600">Mã Booking</p>
-                    <p className="font-heading text-3xl font-bold tracking-wider text-primary-800">{booking.bookingCode}</p>
+                    <p className="text-3xl font-bold tracking-wider text-primary-800">{booking.bookingCode}</p>
                   </div>
                   <img src={qrImg(booking.bookingCode, 90)} alt="QR check-in" className="h-20 w-20 rounded-lg border border-white bg-white p-1" />
                 </div>
@@ -815,7 +815,7 @@ const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({ tour, initi
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm">
                 <span className="text-slate-500">Tổng tiền: </span>
-                <span className="font-heading text-base font-bold text-primary-700">{formatVND(total)}</span>
+                <span className="text-base font-bold text-primary-700">{formatVND(total)}</span>
                 {addOnsTotal > 0 && <span className="block text-[11px] text-slate-400">gồm dịch vụ đi kèm {formatVND(addOnsTotal)}</span>}
               </div>
               <button

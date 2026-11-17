@@ -26,49 +26,27 @@ import {
   listAdminUsers,
   listAdminLogs
 } from '../../../lib/community/service.js';
+import { getTravelSummary, updateMyProfile } from '../../../lib/community/travel.js';
 
 const router = Router();
 const pool = getPool();
 
 /**
- * Trích xuất thông tin người dùng từ request (header hoặc query/body)
+ * Xác định người dùng từ header x-user-id / x-user-email (cách app đang dùng, chưa có session/token).
+ * Luôn đối chiếu với bảng users; vai trò (role) lấy từ DB, KHÔNG tin header. Không có trong DB => coi như chưa đăng nhập.
  */
 async function extractUser(req) {
-  const userId = req.headers['x-user-id'] || req.body?.userId || req.query?.userId;
-  const userEmail = req.headers['x-user-email'] || req.body?.userEmail || req.query?.userEmail;
-  const userName = req.headers['x-user-name'] || req.body?.userName;
-  const userRole = req.headers['x-user-role'] || req.body?.userRole;
-
+  const userId = req.headers['x-user-id'] || req.query?.userId;
+  const userEmail = req.headers['x-user-email'] || req.query?.userEmail;
   if (!userId && !userEmail) return null;
 
-  try {
-    let dbUser = null;
-    if (userEmail) {
-      const res = await pool.query('SELECT id, name, email, role, status FROM users WHERE LOWER(email) = LOWER($1)', [userEmail]);
-      if (res.rows.length > 0) dbUser = res.rows[0];
-    } else if (userId) {
-      const res = await pool.query('SELECT id, name, email, role, status FROM users WHERE id = $1', [userId]);
-      if (res.rows.length > 0) dbUser = res.rows[0];
-    }
-    if (dbUser) {
-      return {
-        id: dbUser.id,
-        email: dbUser.email,
-        name: dbUser.name,
-        role: dbUser.role || 'user',
-        status: dbUser.status
-      };
-    }
-  } catch {
-    // ignore query failure, fallback to headers
-  }
-
-  return {
-    id: userId || userEmail,
-    email: userEmail || '',
-    name: userName || 'Người dùng',
-    role: userRole || 'user'
-  };
+  const { rows } = userId
+    ? await pool.query('SELECT id, name, email, role, status, avatar FROM users WHERE id = $1', [userId])
+    : await pool.query('SELECT id, name, email, role, status, avatar FROM users WHERE LOWER(email) = LOWER($1)', [userEmail]);
+  const u = rows[0];
+  if (!u || u.status === 'locked') return null;
+  if (userEmail && u.email.toLowerCase() !== String(userEmail).toLowerCase()) return null;
+  return { id: u.id, email: u.email, name: u.name, avatar: u.avatar, role: u.role || 'user' };
 }
 
 // ----------------------------------------------------
@@ -91,6 +69,30 @@ router.get('/posts', async (req, res, next) => {
     const result = await listPublicPosts(pool, options, user?.id || null);
     res.json(result);
   } catch (err) {
+    next(err);
+  }
+});
+
+// GET /api/community/my-summary — một lần gọi cho cả Hồ sơ du lịch và Trang cá nhân
+router.get('/my-summary', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập' });
+    res.json(await getTravelSummary(pool, user));
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
+    next(err);
+  }
+});
+
+// PUT /api/community/my-profile — cập nhật bio và công khai hồ sơ
+router.put('/my-profile', async (req, res, next) => {
+  try {
+    const user = await extractUser(req);
+    if (!user) return res.status(401).json({ error: 'Vui lòng đăng nhập' });
+    res.json(await updateMyProfile(pool, user, { bio: req.body?.bio, isPublic: req.body?.isPublic }));
+  } catch (err) {
+    if (err.status) return res.status(err.status).json({ error: err.message });
     next(err);
   }
 });

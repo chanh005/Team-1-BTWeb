@@ -6,7 +6,8 @@ import TourList from './components/TourList';
 import FeaturedDestinations from './components/FeaturedDestinations';
 import DestinationTabs from './components/DestinationTabs';
 import DestinationSearchBox from './components/DestinationSearchBox';
-import CommunityIndex from './components/community/CommunityIndex';
+import CommunityPage from './components/CommunityPage';
+import { COMMUNITY_HASH, isCommunityHash } from './config/communityRoute';
 import TourDetailModal from './components/TourDetailModal';
 import TourDetailPage from './components/TourDetailPage';
 import SavedAndCompareModal from './components/SavedAndCompareModal';
@@ -47,8 +48,7 @@ function App() {
   const initialExplore = React.useMemo(() => readExploreParams(), []);
   const initialCommunity = React.useMemo(() => {
     const hash = window.location.hash || '';
-    const pathname = window.location.pathname || '';
-    return hash.startsWith('#/cong-dong') || hash.startsWith('#/news') || pathname === '/cong-dong' || pathname === '/news';
+    return isCommunityHash(hash);
   }, []);
   const [view, setView] = React.useState<NavView>(
     initialCommunity ? 'community' : initialExplore ? 'explore' : 'home'
@@ -399,7 +399,7 @@ function App() {
       const params = readExploreParams();
       if (params) {
         applyExploreParams(params);
-      } else if (hash.startsWith('#/cong-dong') || hash.startsWith('#/news') || pathname === '/cong-dong' || pathname === '/news') {
+      } else if (isCommunityHash(hash)) {
         setView('community');
       } else if (!hash.startsWith('#/tour/')) {
         setView((v) => (v === 'explore' || v === 'community' ? 'home' : v));
@@ -482,11 +482,11 @@ function App() {
         onNavigate={(v) => {
           if (tourId) dismissTour();
           setView(v);
-          if (v === 'community' || v === 'news') {
-            if (!window.location.hash.startsWith('#/cong-dong')) {
-              window.location.hash = '#/cong-dong';
+          if (v === 'community') {
+            if (!isCommunityHash(window.location.hash)) {
+              window.location.hash = COMMUNITY_HASH;
             }
-          } else if (window.location.hash.startsWith('#/cong-dong') || window.location.hash.startsWith('#/news')) {
+          } else if (isCommunityHash(window.location.hash)) {
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
           }
         }}
@@ -754,13 +754,8 @@ function App() {
         </>
       ) : null}
 
-      {(view === 'community' || view === 'news') && (
-        <CommunityIndex
-          tours={allTours}
-          currentUser={currentUser}
-          onOpenLogin={() => setShowLogin(true)}
-          onOpenTour={(id) => openTour(id)}
-        />
+      {view === 'community' && (
+        <CommunityPage currentUser={currentUser} />
       )}
 
       {view === 'trips' && (
@@ -782,7 +777,6 @@ function App() {
           currentUser={currentUser}
           myBookings={myBookings}
           tours={allTours}
-          userReviews={userReviews.filter(r => r.authorEmail === currentUser.email.toLowerCase())}
           onLogout={() => {
             setCurrentUserEmail('');
             setCurrentUserRole('');

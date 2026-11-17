@@ -113,6 +113,25 @@ export const COMMUNITY_CREATE_SQL = `
     created_at TEXT NOT NULL
   );
 
+  -- 9. Hồ sơ du lịch (bio + công khai). Số liệu hồ sơ KHÔNG lưu ở đây, luôn đếm từ community_posts
+  CREATE TABLE IF NOT EXISTS community_profiles (
+    user_id TEXT PRIMARY KEY,
+    bio TEXT DEFAULT '',
+    is_public BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_at TEXT
+  );
+
+  -- 10. Sổ cái GoPoint: số dư = SUM(delta). booking_id UNIQUE => mỗi booking chỉ được cộng điểm một lần
+  CREATE TABLE IF NOT EXISTS gopoint_ledger (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    booking_id TEXT UNIQUE,
+    delta INTEGER NOT NULL,
+    reason TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_gopoint_ledger_user ON gopoint_ledger (user_id, created_at DESC);
+
   -- Các chỉ mục tối ưu truy vấn (Indexes)
   CREATE INDEX IF NOT EXISTS idx_community_posts_status_published ON community_posts (status, published_at DESC);
   CREATE INDEX IF NOT EXISTS idx_community_posts_pinned_published ON community_posts (is_pinned, published_at DESC);

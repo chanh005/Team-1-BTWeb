@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { sanitizeHtml, extractExcerpt } from './sanitize.js';
 import { rateLimiter, RATE_LIMITS } from './rateLimit.js';
 import COMMUNITY_CONFIG from './config.js';
+import { awardGoPointForPost } from './travel.js';
 
 export function formatPostRow(r) {
   if (!r) return null;
@@ -315,6 +316,10 @@ export async function createPost(pool, postData, user) {
     }
 
     tourId = booking.tourId;
+    if (!(postData.destination || '').trim()) {
+      const tr = await pool.query('SELECT destination FROM tours WHERE id = $1 OR code = $1 LIMIT 1', [tourId]);
+      if (tr.rows[0]?.destination) destination = tr.rows[0].destination;
+    }
   } else {
     // Post thường: không gắn booking_id, không sao
     bookingId = null;
@@ -638,6 +643,9 @@ export async function moderatePost(pool, postId, { action, reason = '' }, adminU
     [newStatus, publishedAt, isPinned, rejectReason, adminUser.email, now, postId]
   );
 
+  // Bài review gắn booking được duyệt => cộng GoPoint (một lần cho mỗi booking)
+  if (newStatus === 'published') await awardGoPointForPost(pool, post);
+
   // Ghi nhật ký kiểm duyệt
   await logModeration(pool, adminUser.id || adminUser.email, action, 'post', postId, reason);
 
@@ -663,6 +671,9 @@ export async function bulkPublishPosts(pool, postIds, adminUser) {
      WHERE id = ANY($3)`,
     [now, adminUser.email, postIds]
   );
+
+  const { rows: published } = await pool.query(`SELECT * FROM community_posts WHERE id = ANY($1)`, [postIds]);
+  for (const post of published) await awardGoPointForPost(pool, post);
 
   for (const pid of postIds) {
     await logModeration(pool, adminUser.id || adminUser.email, 'bulk_publish', 'post', pid, 'Duyệt hàng loạt');

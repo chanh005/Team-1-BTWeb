@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { communitySectionHref } from '../../config/communityRoute';
+import FeedArticles from './FeedArticles';
 
 // Mục "Feed chính" — dựng theo wireframe, dữ liệu mẫu (sẽ nối API sau).
 type Sort = 'newest' | 'featured' | 'following';
@@ -173,7 +174,8 @@ export const CommunityFeed: React.FC = () => {
             </a>
           </div>
 
-          {/* Danh sách bài */}
+          {/* Danh sách bài: bài cẩm nang của GoReady xen trước bài người dùng */}
+          <FeedArticles />
           {posts.map((p) => (
             <article
               key={p.id}

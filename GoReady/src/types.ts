@@ -257,6 +257,40 @@ export interface AccountUser {
   avatar?: string | null;
 }
 
+// Bài viết cẩm nang / thông báo (Admin đăng). Trang công khai không trả `content` trong danh sách.
+export type ArticleStatus = 'draft' | 'published' | 'archived';
+
+export interface Article {
+  id: number;
+  title: string;
+  slug: string;
+  summary: string | null;
+  content: string;
+  coverImage: string | null;
+  category: string | null;
+  tags: string[];
+  status: ArticleStatus;
+  showOnFeed: boolean;
+  isPinned: boolean;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  authorName: string;
+  viewsCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ArticleSummary = Omit<Article, 'content'>;
+
+export type ArticleInput = Partial<Pick<Article, 'title' | 'slug' | 'summary' | 'content' | 'coverImage' | 'category' | 'tags' | 'status' | 'showOnFeed' | 'isPinned' | 'metaTitle' | 'metaDescription'>>;
+
+export interface ArticleList<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface AiPlannerResult {
   destination: string;
   days: number;

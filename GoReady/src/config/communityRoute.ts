@@ -3,6 +3,19 @@ export const COMMUNITY_HASH = '#/cong-dong-du-lich';
 
 export const isCommunityHash = (hash: string): boolean => hash.startsWith(COMMUNITY_HASH);
 
+// Trang đọc bài cẩm nang: #/cong-dong-du-lich/cam-nang/<slug>
+const ARTICLE_PATH = '/cam-nang/';
+
+export const articleHref = (slug: string): string => `${COMMUNITY_HASH}${ARTICLE_PATH}${encodeURIComponent(slug)}`;
+
+/** Lấy slug từ hash; không phải trang bài viết thì trả về null. */
+export const articleSlugFromHash = (hash: string): string | null => {
+  const rest = hash.slice(COMMUNITY_HASH.length).split('?')[0];
+  if (!rest.startsWith(ARTICLE_PATH)) return null;
+  const slug = rest.slice(ARTICLE_PATH.length);
+  return slug ? decodeURIComponent(slug) : null;
+};
+
 export type CommunitySectionId = 'feed' | 'review' | 'soan-bai' | 'ho-so';
 
 export interface CommunitySection {

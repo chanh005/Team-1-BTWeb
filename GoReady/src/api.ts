@@ -1,13 +1,15 @@
-import type { AccountUser, Booking, BookingStatus, Departure, HoldResponse, SeatRecord, Tour } from './types';
+import type { AccountUser, Article, ArticleInput, ArticleList, ArticleStatus, ArticleSummary, Booking, BookingStatus, Departure, HoldResponse, SeatRecord, Tour } from './types';
 
 // Relative path: in dev it's proxied to the local express server (vite.config.ts),
 // and on Vercel it resolves to the serverless functions under /api on the same origin.
 export const API_BASE = '/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  // Cho phép truyền thêm header (ví dụ x-user-id của admin) mà vẫn giữ Content-Type JSON
+  const { headers: extraHeaders, ...rest } = options ?? {};
   const res = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
+    ...rest,
+    headers: { 'Content-Type': 'application/json', ...(extraHeaders as Record<string, string> | undefined) },
   });
     if (!res.ok) {
     const body = await res.json().catch(() => ({}));
@@ -54,4 +56,37 @@ export const api = {
   toggleUserStatus: (id: string) => request<AccountUser>(`/users/${id}/status`, { method: 'PATCH' }),
   updateAvatar: (id: string, avatar: string) =>
     request<AccountUser>(`/users/${id}/avatar`, { method: 'PATCH', body: JSON.stringify({ avatar }) }),
+};
+
+/** Admin đang đăng nhập: id và email được gửi kèm mọi thao tác ghi; server kiểm tra role trong bảng users */
+export interface AdminActor {
+  id: string;
+  email: string;
+}
+
+const actorHeaders = (actor: AdminActor) => ({ 'x-user-id': actor.id, 'x-user-email': actor.email });
+
+/** Bài viết cẩm nang: đọc công khai; ghi và xem bản nháp cần quyền admin */
+export const articleApi = {
+  list: (opts: { page?: number; limit?: number; showOnFeed?: boolean; category?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.page) qs.set('page', String(opts.page));
+    if (opts.limit) qs.set('limit', String(opts.limit));
+    if (opts.showOnFeed !== undefined) qs.set('showOnFeed', String(opts.showOnFeed));
+    if (opts.category) qs.set('category', opts.category);
+    return request<ArticleList<ArticleSummary>>(`/articles?${qs}`);
+  },
+  getBySlug: (slug: string) => request<Article>(`/articles/slug/${encodeURIComponent(slug)}`),
+  listManage: (actor: AdminActor, opts: { search?: string; status?: ArticleStatus } = {}) => {
+    const qs = new URLSearchParams({ limit: '100' });
+    if (opts.search) qs.set('search', opts.search);
+    if (opts.status) qs.set('status', opts.status);
+    return request<ArticleList<Article>>(`/articles/manage?${qs}`, { headers: actorHeaders(actor) });
+  },
+  create: (actor: AdminActor, input: ArticleInput) =>
+    request<Article>('/articles', { method: 'POST', headers: actorHeaders(actor), body: JSON.stringify(input) }),
+  update: (actor: AdminActor, id: number, patch: ArticleInput) =>
+    request<Article>(`/articles/${id}`, { method: 'PUT', headers: actorHeaders(actor), body: JSON.stringify(patch) }),
+  remove: (actor: AdminActor, id: number) =>
+    request<{ success: boolean; id: number }>(`/articles/${id}`, { method: 'DELETE', headers: actorHeaders(actor) }),
 };

@@ -5,6 +5,7 @@ import Dashboard from './components/Dashboard';
 import TourManagement from './components/TourManagement';
 import BookingManagement from './components/BookingManagement';
 import UserManagement from './components/UserManagement';
+import ArticleManagement from './components/ArticleManagement';
 import { api } from '../api';
 import { addSheetToursIfMissing } from './importSheetTours';
 import { useLocalStorage } from '../hooks/useLocalStorage';
@@ -109,6 +110,7 @@ function App() {
           onDismissNotice={() => setSheetNotice(null)}
         />
       )}
+      {page === 'articles' && <ArticleManagement actor={{ id: adminUser.id, email: adminUser.email }} />}
       {page === 'bookings' && <BookingManagement bookings={bookings} tours={tours} onChangeStatus={handleChangeBookingStatus} />}
       {page === 'users' && <UserManagement users={users} onToggleStatus={handleToggleUserStatus} />}
     </AdminLayout>

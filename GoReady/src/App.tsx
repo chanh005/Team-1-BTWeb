@@ -755,7 +755,7 @@ function App() {
       ) : null}
 
       {view === 'community' && (
-        <CommunityPage />
+        <CommunityPage currentUser={currentUser} />
       )}
 
       {view === 'trips' && (
@@ -777,7 +777,6 @@ function App() {
           currentUser={currentUser}
           myBookings={myBookings}
           tours={allTours}
-          userReviews={userReviews.filter(r => r.authorEmail === currentUser.email.toLowerCase())}
           onLogout={() => {
             setCurrentUserEmail('');
             setCurrentUserRole('');

@@ -1,5 +1,7 @@
 import React from 'react';
-import type { AccountUser, Booking, Tour, UserReview } from '../types';
+import type { AccountUser, Booking, Tour } from '../types';
+import { useTravelSummary } from '../hooks/useTravelSummary';
+import { communitySectionHref } from '../config/communityRoute';
 import { formatVND, formatDateLong } from '../utils/format';
 import { fileToResizedDataUrl } from '../utils/image';
 import PolicyModal, { type PolicyTopic } from './PolicyModal';
@@ -8,7 +10,6 @@ interface AccountPageProps {
   currentUser: AccountUser;
   myBookings: Booking[];
   tours: Tour[];
-  userReviews: UserReview[];
   onLogout: () => void;
   onNavigate: (view: 'trips') => void;
   onUpdateAvatar: (avatar: string) => Promise<void>;
@@ -24,7 +25,12 @@ const STATUS_LABELS: Record<string, { label: string; color: string; bg: string }
   cancelled: { label: 'Đã hủy',        color: '#dc2626', bg: '#fef2f2' },
 };
 
-const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tours, userReviews, onLogout, onNavigate, onUpdateAvatar, initialTab = 'profile' }) => {
+const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tours, onLogout, onNavigate, onUpdateAvatar, initialTab = 'profile' }) => {
+  // Đánh giá, tên và ảnh đại diện lấy cùng nguồn với "Hồ sơ du lịch" (my-summary); khi chưa tải xong dùng tạm dữ liệu tài khoản
+  const { data: summary, loading: summaryLoading, error: summaryError, refetch: refetchSummary } = useTravelSummary({ id: currentUser.id, email: currentUser.email });
+  const reviews = summary?.reviews ?? [];
+  const displayName = summary?.displayName || currentUser.name;
+  const displayAvatar = summary ? summary.avatar : currentUser.avatar;
   const [activeTab, setActiveTab] = React.useState<TabKey>(initialTab);
   const [policyTopic, setPolicyTopic] = React.useState<PolicyTopic | null>(null);
   const [avatarUploading, setAvatarUploading] = React.useState(false);
@@ -44,6 +50,7 @@ const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tour
     try {
       const dataUrl = await fileToResizedDataUrl(file);
       await onUpdateAvatar(dataUrl);
+      void refetchSummary();
     } catch {
       setAvatarError('Không thể cập nhật ảnh đại diện. Vui lòng thử lại.');
     } finally {
@@ -53,7 +60,7 @@ const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tour
 
   const getTourName = (tourId: string) => tours.find((t) => t.id === tourId)?.name ?? tourId;
 
-  const initials = currentUser.name
+  const initials = displayName
     .split(' ')
     .map((w) => w[0])
     .join('')
@@ -77,8 +84,8 @@ const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tour
           {/* Avatar */}
           <div className="relative">
             <div className="grid h-20 w-20 place-items-center overflow-hidden rounded-3xl bg-white/20 text-3xl font-bold text-white shadow-xl backdrop-blur-sm">
-              {currentUser.avatar ? (
-                <img src={currentUser.avatar} alt={currentUser.name} className="h-full w-full object-cover" />
+              {displayAvatar ? (
+                <img src={displayAvatar} alt={displayName} className="h-full w-full object-cover" />
               ) : (
                 initials
               )}
@@ -116,7 +123,7 @@ const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tour
           )}
 
           <div className="mt-2">
-            <h1 className="text-2xl font-bold text-white">{currentUser.name}</h1>
+            <h1 className="text-2xl font-bold text-white">{displayName}</h1>
             <p className="mt-0.5 text-sm text-white/70">{currentUser.email}</p>
           </div>
 
@@ -124,7 +131,7 @@ const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tour
           <div className="mt-2 flex gap-6">
             {[
               { label: 'Đã đặt', value: myBookings.length },
-              { label: 'Đánh giá', value: userReviews.length },
+              { label: 'Đánh giá', value: summary ? summary.reviewsCount : '—' },
               { label: 'Thành viên từ', value: currentUser.joinedAt?.slice(0, 4) ?? '—' },
             ].map((s) => (
               <div key={s.label} className="text-center">
@@ -261,30 +268,39 @@ const AccountPage: React.FC<AccountPageProps> = ({ currentUser, myBookings, tour
               <div className="rounded-2xl bg-white p-6 shadow-sm">
                 <h2 className="mb-4 text-lg font-bold text-slate-800">Đánh giá của tôi</h2>
                 
-                {userReviews.length === 0 ? (
+                {summaryLoading ? (
+                  <p className="py-8 text-center text-sm text-slate-400" aria-busy="true">Đang tải đánh giá…</p>
+                ) : summaryError && !summary ? (
+                  <div role="alert" className="rounded-xl bg-rose-50 p-4 text-center text-sm text-rose-700">
+                    <p>Không tải được đánh giá: {summaryError}</p>
+                    <button type="button" onClick={() => void refetchSummary()} className="mt-2 rounded-full bg-indigo-600 px-4 py-1.5 text-xs font-bold text-white">Thử lại</button>
+                  </div>
+                ) : reviews.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-8 text-center text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
                     <span className="text-4xl">⭐</span>
                     <p className="text-sm font-medium">Bạn chưa viết đánh giá nào</p>
-                    <p className="text-xs">Hãy trải nghiệm tour và chia sẻ cảm nhận nhé!</p>
+                    <p className="text-xs">Viết bài gắn tour đã đi trong Cộng đồng — bài được duyệt sẽ tính là đánh giá.</p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-sm text-slate-500 mb-6">Bạn đã gửi {userReviews.length} đánh giá.</p>
+                    <p className="text-sm text-slate-500 mb-6">Bạn có {reviews.length} đánh giá đã được duyệt.</p>
                     <div className="flex flex-col gap-4">
-                      {userReviews.map(review => (
+                      {reviews.map(review => (
                         <div key={review.id} className="rounded-xl border border-slate-100 bg-slate-50 p-4 hover:shadow-sm transition">
                           <div className="flex items-start justify-between">
                             <div>
-                              <p className="font-bold text-slate-800">{getTourName(review.tourId)}</p>
+                              <p className="font-bold text-slate-800">{review.tourName}</p>
                               <div className="flex items-center gap-1 mt-1">
                                 {Array.from({ length: 5 }).map((_, i) => (
                                   <span key={i} className={`text-sm ${i < review.rating ? 'text-amber-400' : 'text-slate-300'}`}>★</span>
                                 ))}
                               </div>
                             </div>
-                            <span className="text-xs font-medium text-slate-400">{formatDateLong(review.date)}</span>
+                            <span className="text-xs font-medium text-slate-400">{formatDateLong(review.publishedAt)}</span>
                           </div>
-                          <p className="mt-3 text-sm text-slate-600 leading-relaxed">"{review.content}"</p>
+                          <p className="mt-3 text-sm font-semibold text-slate-700">{review.title}</p>
+                          {review.excerpt && <p className="mt-1 text-sm text-slate-600 leading-relaxed">"{review.excerpt}"</p>}
+                          <a href={`${communitySectionHref('review')}?slug=${encodeURIComponent(review.slug)}`} className="mt-2 inline-block text-xs font-semibold text-indigo-600 hover:underline">Xem bài gốc →</a>
                         </div>
                       ))}
                     </div>

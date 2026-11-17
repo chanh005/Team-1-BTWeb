@@ -9,15 +9,16 @@ import CommunityFeed from './community/CommunityFeed';
 import CommunityReviewDetail from './community/CommunityReviewDetail';
 import CommunityComposer from './community/CommunityComposer';
 import CommunityProfile from './community/CommunityProfile';
+import type { AccountUser } from '../types';
 
-const SECTION_VIEWS: Record<CommunitySectionId, React.ReactNode> = {
-  feed: <CommunityFeed />,
-  review: <CommunityReviewDetail />,
-  'soan-bai': <CommunityComposer />,
-  'ho-so': <CommunityProfile />,
-};
+export const CommunityPage: React.FC<{ currentUser: AccountUser | null }> = ({ currentUser }) => {
+  const SECTION_VIEWS: Record<CommunitySectionId, React.ReactNode> = {
+    feed: <CommunityFeed />,
+    review: <CommunityReviewDetail />,
+    'soan-bai': <CommunityComposer currentUser={currentUser} />,
+    'ho-so': <CommunityProfile currentUser={currentUser} />,
+  };
 
-export const CommunityPage: React.FC = () => {
   const [active, setActive] = React.useState<CommunitySectionId>(() => readCommunitySection(window.location.hash));
 
   React.useEffect(() => {

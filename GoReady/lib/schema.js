@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createTour } from './tours.js';
+import { ensureCommunitySchema } from './community/schema.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -109,6 +110,7 @@ export async function ensureSchema(pool) {
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS "childPrice" INTEGER`);
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS category TEXT`);
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS keywords JSONB`);
+  await ensureCommunitySchema(pool); // bảng community_*, community_profiles, gopoint_ledger (idempotent)
   ensured = true;
 }
 

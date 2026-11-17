@@ -7,6 +7,7 @@ import bookingsRouter from '../backend/src/routes/bookings.js';
 import usersRouter from '../backend/src/routes/users.js';
 import imagesRouter from '../backend/src/routes/images.js';
 import chuyenDiRouter from '../backend/src/routes/chuyenDi.js';
+import communityRouter from '../backend/src/routes/community.js';
 
 const app = express();
 const pool = getPool();
@@ -52,6 +53,7 @@ apiRouter.use('/tours', toursRouter);
 apiRouter.use('/bookings', bookingsRouter);
 apiRouter.use('/users', usersRouter);
 apiRouter.use('/chuyen-di', chuyenDiRouter);
+apiRouter.use('/community', communityRouter);
 
 // Health check endpoint
 apiRouter.get('/health', (_req, res) => res.json({ ok: true }));

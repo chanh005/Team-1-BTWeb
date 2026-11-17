@@ -4,6 +4,30 @@ import { dirname, join } from 'node:path';
 import { createTour } from './tours.js';
 import { ensureCommunitySchema } from './community/schema.js';
 
+// Bài viết cẩm nang/thông báo (Admin đăng). Chỉ thêm bảng và chỉ mục, không đụng bảng cũ.
+const ARTICLES_SQL = `
+  CREATE TABLE IF NOT EXISTS articles (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL,
+    summary TEXT,
+    content TEXT NOT NULL,
+    "coverImage" TEXT,
+    category VARCHAR(100),
+    tags JSONB DEFAULT '[]'::jsonb,
+    status VARCHAR(20) NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')),
+    "showOnFeed" BOOLEAN NOT NULL DEFAULT TRUE,
+    "isPinned" BOOLEAN NOT NULL DEFAULT FALSE,
+    "metaTitle" VARCHAR(255),
+    "metaDescription" TEXT,
+    "authorName" VARCHAR(100) NOT NULL DEFAULT 'Ban quản trị GoReady',
+    "viewsCount" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  );
+  CREATE INDEX IF NOT EXISTS idx_articles_feed ON articles (status, "showOnFeed", "isPinned", "createdAt" DESC);
+`;
+
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const CREATE_SQL = `
@@ -110,7 +134,8 @@ export async function ensureSchema(pool) {
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS "childPrice" INTEGER`);
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS category TEXT`);
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS keywords JSONB`);
-  await ensureCommunitySchema(pool); // bảng community_*, community_profiles, gopoint_ledger (idempotent)
+  await ensureCommunitySchema(pool);
+  await pool.query(ARTICLES_SQL); // bảng community_*, community_profiles, gopoint_ledger (idempotent)
   ensured = true;
 }
 

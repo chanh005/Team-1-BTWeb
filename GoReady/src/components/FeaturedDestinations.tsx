@@ -30,7 +30,7 @@ const FeaturedDestinations: React.FC<FeaturedDestinationsProps> = ({ featuredTou
   return (
     <section id="featured-destinations" className="container-px mx-auto py-8">
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="font-heading text-xl font-bold text-slate-900">Điểm đến nổi bật</h2>
+        <h2 className="text-xl font-bold text-slate-900">Điểm đến nổi bật</h2>
       </div>
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {destinations.map((d) => (
@@ -48,7 +48,7 @@ const FeaturedDestinations: React.FC<FeaturedDestinationsProps> = ({ featuredTou
                 className="h-full w-full object-cover transition duration-500 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <span className="absolute bottom-2 left-3 right-3 font-heading text-sm font-bold text-white sm:text-base">{d.name}</span>
+              <span className="absolute bottom-2 left-3 right-3 text-sm font-bold text-white sm:text-base">{d.name}</span>
             </div>
             <div className="flex items-center justify-between px-3 py-2.5">
               <span className="text-xs font-medium text-slate-500">{d.count} tour</span>

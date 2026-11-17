@@ -38,7 +38,7 @@ const sectionDomId = (id: string) => `trip-section-${id}`;
 const Section: React.FC<{ id: string; num: number; icon: string; title: string; hint?: string; children: React.ReactNode }> = ({ id, num, icon, title, hint, children }) => (
   <section id={sectionDomId(id)} className="scroll-mt-24 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft">
     <div className="mb-4 flex items-center justify-between gap-3">
-      <h3 className="flex items-center gap-2.5 font-heading text-base font-bold text-slate-900">
+      <h3 className="flex items-center gap-2.5 text-base font-bold text-slate-900">
         <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">{num}</span>
         <span>
           <span className="mr-1.5">{icon}</span>
@@ -126,7 +126,7 @@ const TicketCard: React.FC<{ ve: Ve }> = ({ ve }) => {
         <span className="rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold uppercase text-primary-700">{ve.loaiVe}</span>
         <p className="mt-1 text-sm font-semibold leading-snug text-slate-800">{ve.tenVe}</p>
         <p className="mt-1 text-xs text-slate-400">Mã đặt vé</p>
-        <button onClick={copy} title="Sao chép mã" className="font-heading text-sm font-bold tracking-wide text-primary-800 hover:underline">
+        <button onClick={copy} title="Sao chép mã" className="text-sm font-bold tracking-wide text-primary-800 hover:underline">
           {ve.maDatVe} <span className="text-[10px] font-normal text-slate-400">{copied ? '· đã chép' : '· chép'}</span>
         </button>
         <p className="mt-0.5 text-xs text-slate-500">
@@ -169,7 +169,7 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tou
         <div className="relative flex flex-col gap-5 p-6 sm:p-8 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${PHASE_BADGE[phase].cls}`}>{PHASE_BADGE[phase].text}</span>
-            <h2 className="mt-3 font-heading text-2xl font-bold leading-snug sm:text-3xl">{trip.tenChuyenDi}</h2>
+            <h2 className="mt-3 text-2xl font-bold leading-snug sm:text-3xl">{trip.tenChuyenDi}</h2>
             <p className="mt-1 text-sm text-white/85">
               {fmtDate(trip.ngayKhoiHanh)} – {fmtDate(trip.ngayKetThuc)} · {durationLabel(trip)} · Mã đơn {trip.don.bookingCode}
             </p>
@@ -204,7 +204,7 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tou
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tên chuyến đi">{trip.tenChuyenDi}</Field>
-              <Field label="Mã đơn"><span className="font-heading tracking-wide text-primary-800">{trip.don.bookingCode}</span></Field>
+              <Field label="Mã đơn"><span className="tracking-wide text-primary-800">{trip.don.bookingCode}</span></Field>
               <Field label="Thời gian">
                 {fmtDateLong(trip.ngayKhoiHanh)}
                 {trip.ngayKetThuc !== trip.ngayKhoiHanh && <> → {fmtDateLong(trip.ngayKetThuc)}</>}
@@ -240,7 +240,7 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tou
                         <li key={r.maLichTrinh} className="relative">
                           <span className="absolute -left-[27px] top-1 h-3 w-3 rounded-full border-2 border-white bg-primary ring-2 ring-primary-100" />
                           <div className="flex flex-wrap items-baseline gap-x-2">
-                            <span className="font-heading text-sm font-bold tabular-nums text-primary-700">{r.gio ?? '--:--'}</span>
+                            <span className="text-sm font-bold tabular-nums text-primary-700">{r.gio ?? '--:--'}</span>
                             <span className="text-sm font-semibold text-slate-800">{r.tieuDe}</span>
                           </div>
                           {r.moTa && <p className="mt-0.5 text-xs leading-relaxed text-slate-500">{r.moTa}</p>}
@@ -398,7 +398,7 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tou
         {/* Utilities */}
         <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <section className="rounded-2xl border border-slate-100 bg-white p-5 shadow-soft">
-            <h3 className="font-heading text-base font-bold text-slate-900">🧰 Tiện ích chuyến đi</h3>
+            <h3 className="text-base font-bold text-slate-900">🧰 Tiện ích chuyến đi</h3>
             <div className="mt-3 space-y-2">
               <button onClick={() => downloadTripText(trip)} className="w-full rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-white transition hover:bg-primary-600">
                 ⬇️ Tải thông tin hành trình
@@ -418,7 +418,7 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tou
           </section>
 
           <section className="rounded-2xl bg-cream p-5">
-            <h3 className="font-heading text-base font-bold text-slate-900">🛟 Hỗ trợ trong chuyến đi</h3>
+            <h3 className="text-base font-bold text-slate-900">🛟 Hỗ trợ trong chuyến đi</h3>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <span className="text-xs text-slate-500">Hotline GoReady 24/7</span>

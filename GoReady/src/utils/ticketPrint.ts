@@ -30,8 +30,10 @@ const ticketHtml = (b: Booking, tour: Tour): string => {
 
   return `<!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><title>Vé điện tử ${e(b.bookingCode)}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  body { font-family: 'Segoe UI', Arial, sans-serif; color: #0f172a; margin: 0; padding: 32px; background: #fff; }
+  body { font-family: 'Be Vietnam Pro', system-ui, sans-serif; color: #0f172a; margin: 0; padding: 32px; background: #fff; }
   .ticket { max-width: 640px; margin: 0 auto; border: 2px dashed #94a3b8; border-radius: 16px; padding: 24px; }
   .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 16px; }
   .brand { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #64748b; }

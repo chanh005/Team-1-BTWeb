@@ -154,7 +154,7 @@ export const CommunityComposer: React.FC<{ currentUser: AccountUser | null }> = 
       <div className="grid items-start gap-6 lg:grid-cols-[1fr_320px]">
         <div className="flex min-w-0 flex-col gap-4">
           <div>
-            <h2 className="font-heading text-2xl font-extrabold text-slate-900">Soạn thảo bài viết</h2>
+            <h2 className="text-2xl font-extrabold text-slate-900">Soạn thảo bài viết</h2>
             <p className="mt-1 text-[15px] text-slate-500">Chia sẻ trải nghiệm thật, nhận GoPoint khi bài được duyệt</p>
           </div>
           <label className="block">
@@ -185,7 +185,7 @@ export const CommunityComposer: React.FC<{ currentUser: AccountUser | null }> = 
         <aside className="flex flex-col gap-4">
           <section className={box}>
             <div className="flex items-baseline justify-between">
-              <p className="font-heading text-[15px] font-bold text-slate-900">Ảnh và video</p>
+              <p className="text-[15px] font-bold text-slate-900">Ảnh và video</p>
               <p className="text-xs text-slate-500">Ảnh {images.length}/{MAX_IMG} · Video {videos.length}/{MAX_VID}</p>
             </div>
             <label
@@ -213,7 +213,7 @@ export const CommunityComposer: React.FC<{ currentUser: AccountUser | null }> = 
           </section>
 
           <section className={box}>
-            <p className="font-heading text-[15px] font-bold text-slate-900">Tour GoReady đã đi</p>
+            <p className="text-[15px] font-bold text-slate-900">Tour GoReady đã đi</p>
             <select value={tour} onChange={(e) => { setTour(e.target.value); setRating(0); }} disabled={!auth} className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-600">
               <option value="">{bookings.length ? 'Chọn từ lịch sử đặt của bạn' : 'Không gắn tour (bài thường)'}</option>
               {bookings.map((b) => <option key={b.id} value={b.id}>{b.tourName} · {b.bookingCode}</option>)}
@@ -236,7 +236,7 @@ export const CommunityComposer: React.FC<{ currentUser: AccountUser | null }> = 
           </section>
 
           <section className={box}>
-            <p className="font-heading text-[15px] font-bold text-slate-900">Nhóm, địa danh và hashtag</p>
+            <p className="text-[15px] font-bold text-slate-900">Nhóm, địa danh và hashtag</p>
             <select aria-label="Nhóm bài viết" value={group} onChange={(e) => setGroup(e.target.value as CreatePostPayload['group'])} className="mt-2 h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm text-slate-600">
               {GROUPS.map((g) => <option key={g.id} value={g.id}>{g.label}</option>)}
             </select>

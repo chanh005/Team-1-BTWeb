@@ -83,12 +83,12 @@ const LegBlock: React.FC<{ leg: DepartureLeg; className?: string }> = ({ leg, cl
 
       {isLocal ? (
         <p className="mt-3 text-sm text-slate-600">
-          <span className="font-heading text-lg font-bold text-slate-800">{leg.departTime}</span>
+          <span className="text-lg font-bold text-slate-800">{leg.departTime}</span>
           <span className="ml-2 text-xs text-slate-400">{leg.label === 'Giờ đón' ? `Xe đón tại điểm hẹn ở ${leg.from}` : 'Kết thúc chương trình'}</span>
         </p>
       ) : (
         <>
-          <div className="mt-3 flex items-center justify-between font-heading text-lg font-bold text-slate-800">
+          <div className="mt-3 flex items-center justify-between text-lg font-bold text-slate-800">
             <span>{leg.departTime}</span>
             <span>{leg.arriveTime}</span>
           </div>
@@ -104,7 +104,7 @@ const LegBlock: React.FC<{ leg: DepartureLeg; className?: string }> = ({ leg, cl
         </>
       )}
 
-      {isFlight && <div className={`mt-3 font-heading text-sm font-bold italic ${AIRLINE_STYLE[leg.code?.slice(0, 2) ?? ''] ?? 'text-slate-700'}`}>{leg.operator}</div>}
+      {isFlight && <div className={`mt-3 text-sm font-bold italic ${AIRLINE_STYLE[leg.code?.slice(0, 2) ?? ''] ?? 'text-slate-700'}`}>{leg.operator}</div>}
     </div>
   );
 };
@@ -112,10 +112,10 @@ const LegBlock: React.FC<{ leg: DepartureLeg; className?: string }> = ({ leg, cl
 const PriceRow: React.FC<{ name: string; note?: string; children: React.ReactNode }> = ({ name, note, children }) => (
   <div className="flex items-start justify-between gap-3 py-2">
     <div>
-      <div className="font-heading text-sm font-bold text-slate-900">{name}</div>
+      <div className="text-sm font-bold text-slate-900">{name}</div>
       {note && <div className="text-[11px] text-slate-500">({note})</div>}
     </div>
-    <div className="shrink-0 text-right font-heading text-sm font-bold text-red-600">{children}</div>
+    <div className="shrink-0 text-right text-sm font-bold text-red-600">{children}</div>
   </div>
 );
 
@@ -187,7 +187,7 @@ const DepartureCard: React.FC<{ departure: LiveDeparture; selected: boolean; onS
                   {formatVND(prices.adult)}
                 </PriceRow>
                 <PriceRow name="Trẻ em" note={prices.childRange || undefined}>
-                  {prices.child ? formatVND(prices.child) : <span className="font-body text-xs font-normal text-slate-400">Không áp dụng</span>}
+                  {prices.child ? formatVND(prices.child) : <span className=" text-xs font-normal text-slate-400">Không áp dụng</span>}
                 </PriceRow>
               </div>
               <div className="sm:pl-6">
@@ -266,7 +266,7 @@ const Lightbox: React.FC<{ images: string[]; index: number; alt: string; onIndex
 
 const SectionCard: React.FC<{ id: SectionId; title: string; children: React.ReactNode }> = ({ id, title, children }) => (
   <section id={sectionDomId(id)} className="scroll-mt-32 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft sm:p-6">
-    <h2 className="font-heading text-xl font-bold text-slate-900">{title}</h2>
+    <h2 className="text-xl font-bold text-slate-900">{title}</h2>
     <div className="mt-4">{children}</div>
   </section>
 );
@@ -426,7 +426,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
           <div className="lg:col-start-1">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h1 className="font-heading text-2xl font-bold text-slate-900 sm:text-3xl">{tour.name}</h1>
+                <h1 className="text-2xl font-bold text-slate-900 sm:text-3xl">{tour.name}</h1>
                 {tour.rating > 0 && (
                   <div className="mt-1 flex items-center gap-2 text-sm">
                     <span className="font-semibold text-amber-500">★ {tour.rating.toFixed(1)}</span>
@@ -482,7 +482,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
                 <div>
                   <div className="text-xs text-slate-500">Giá từ</div>
                   {pct > 0 && <div className="text-xs text-slate-400 line-through">{formatVND(tour.price)}</div>}
-                  <div className="font-heading text-2xl font-bold text-primary-700">{formatVND(price)}</div>
+                  <div className="text-2xl font-bold text-primary-700">{formatVND(price)}</div>
                   <div className="text-[11px] text-slate-400">/ người lớn</div>
                 </div>
                 {selected && (
@@ -607,7 +607,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
                             className="flex w-full items-center gap-3 bg-slate-50 px-4 py-3 text-left"
                           >
                             <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-xs font-bold text-white">{day.day}</span>
-                            <span className="flex-1 font-heading text-sm font-bold text-slate-800">{day.title}</span>
+                            <span className="flex-1 text-sm font-bold text-slate-800">{day.title}</span>
                             {day.meals.length > 0 && <span className="hidden text-[11px] text-slate-500 sm:inline">🍴 {day.meals.join(', ')}</span>}
                             <span className={`text-slate-400 transition ${open ? 'rotate-180' : ''}`} aria-hidden>▾</span>
                           </button>
@@ -659,7 +659,7 @@ const TourDetailPage: React.FC<TourDetailPageProps> = ({ tour, isSaved, onBack, 
       <div className="fixed inset-x-0 bottom-0 z-30 flex items-center justify-between gap-3 border-t border-slate-100 bg-white p-3 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] lg:hidden">
         <div>
           <div className="text-[11px] text-slate-500">Giá từ</div>
-          <div className="font-heading text-lg font-bold leading-tight text-primary-700">{formatVND(price)}</div>
+          <div className="text-lg font-bold leading-tight text-primary-700">{formatVND(price)}</div>
         </div>
         <button
           onClick={() => onBook(tour, selected)}

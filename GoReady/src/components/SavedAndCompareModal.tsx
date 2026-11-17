@@ -327,7 +327,7 @@ const SavedAndCompareModal: React.FC<SavedAndCompareModalProps> = ({
                 >
                   ← Quay lại so sánh
                 </button>
-                <h3 className="line-clamp-1 font-heading text-sm font-bold text-slate-900 sm:text-base">
+                <h3 className="line-clamp-1 text-sm font-bold text-slate-900 sm:text-base">
                   Lịch trình chi tiết: {detailTour.name}
                 </h3>
               </div>
@@ -356,7 +356,7 @@ const SavedAndCompareModal: React.FC<SavedAndCompareModalProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="text-right">
                     <span className="text-xs text-slate-400">Giá tour</span>
-                    <p className="font-heading text-lg font-bold text-primary-700">{formatVND(detailTour.discountPrice ?? detailTour.price)}</p>
+                    <p className="text-lg font-bold text-primary-700">{formatVND(detailTour.discountPrice ?? detailTour.price)}</p>
                   </div>
                   <button
                     onClick={() => onBook(detailTour)}
@@ -369,7 +369,7 @@ const SavedAndCompareModal: React.FC<SavedAndCompareModalProps> = ({
 
               {detailTour.itinerary && detailTour.itinerary.length > 0 ? (
                 <div className="space-y-4">
-                  <h4 className="font-heading text-xs font-bold uppercase tracking-wider text-slate-400">Lịch trình chuyến đi</h4>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Lịch trình chuyến đi</h4>
                   <div className="space-y-3">
                     {detailTour.itinerary.map((day) => (
                       <div key={day.day} className="rounded-xl border border-slate-100 p-4 bg-white shadow-xs">
@@ -377,7 +377,7 @@ const SavedAndCompareModal: React.FC<SavedAndCompareModalProps> = ({
                           <span className="grid h-7 w-7 place-items-center rounded-full bg-primary text-xs font-bold text-white">
                             {day.day}
                           </span>
-                          <h5 className="font-heading text-sm font-bold text-slate-800">{day.title}</h5>
+                          <h5 className="text-sm font-bold text-slate-800">{day.title}</h5>
                         </div>
                         {day.activities && day.activities.length > 0 && (
                           <ul className="mt-3 space-y-2 border-l-2 border-primary/30 pl-4">

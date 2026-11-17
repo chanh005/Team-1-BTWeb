@@ -278,7 +278,7 @@ export const TourFilter: React.FC<TourFilterProps> = ({
               d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
             />
           </svg>
-          <h3 className="font-heading text-lg font-bold text-slate-900">Bộ lọc</h3>
+          <h3 className="text-lg font-bold text-slate-900">Bộ lọc</h3>
           {typeof resultCount === 'number' && (
             <span className="text-xs text-slate-400 font-medium">({resultCount} tour)</span>
           )}
@@ -303,7 +303,7 @@ export const TourFilter: React.FC<TourFilterProps> = ({
           <button
             type="button"
             onClick={() => toggleGroup('budget')}
-            className="flex w-full items-center justify-between text-left font-heading text-sm font-bold text-slate-800 transition hover:text-primary"
+            className="flex w-full items-center justify-between text-left text-sm font-bold text-slate-800 transition hover:text-primary"
           >
             <span>Ngân sách</span>
             <svg
@@ -391,7 +391,7 @@ export const TourFilter: React.FC<TourFilterProps> = ({
           <button
             type="button"
             onClick={() => toggleGroup('destination')}
-            className="flex w-full items-center justify-between text-left font-heading text-sm font-bold text-slate-800 transition hover:text-primary"
+            className="flex w-full items-center justify-between text-left text-sm font-bold text-slate-800 transition hover:text-primary"
           >
             <span>Điểm đến</span>
             <svg
@@ -461,7 +461,7 @@ export const TourFilter: React.FC<TourFilterProps> = ({
           <button
             type="button"
             onClick={() => toggleGroup('duration')}
-            className="flex w-full items-center justify-between text-left font-heading text-sm font-bold text-slate-800 transition hover:text-primary"
+            className="flex w-full items-center justify-between text-left text-sm font-bold text-slate-800 transition hover:text-primary"
           >
             <span>Thời gian</span>
             <svg
@@ -518,7 +518,7 @@ export const TourFilter: React.FC<TourFilterProps> = ({
           <button
             type="button"
             onClick={() => toggleGroup('popularity')}
-            className="flex w-full items-center justify-between text-left font-heading text-sm font-bold text-slate-800 transition hover:text-primary"
+            className="flex w-full items-center justify-between text-left text-sm font-bold text-slate-800 transition hover:text-primary"
           >
             <span>Phổ biến & Sắp xếp</span>
             <svg
@@ -616,7 +616,7 @@ export const TourFilter: React.FC<TourFilterProps> = ({
           <button
             type="button"
             onClick={() => toggleGroup('styles')}
-            className="flex w-full items-center justify-between text-left font-heading text-sm font-bold text-slate-800 transition hover:text-primary"
+            className="flex w-full items-center justify-between text-left text-sm font-bold text-slate-800 transition hover:text-primary"
           >
             <span>Phong cách du lịch</span>
             <svg

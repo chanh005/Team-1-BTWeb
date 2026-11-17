@@ -60,7 +60,7 @@ const BookingManagement: React.FC<BookingManagementProps> = ({ bookings, tours, 
               const statusOpt = STATUS_OPTIONS.find((s) => s.value === b.status)!;
               return (
                 <tr key={b.id}>
-                  <td className="px-4 py-3 font-mono text-xs font-semibold text-slate-700">{b.bookingCode}</td>
+                  <td className="px-4 py-3 tabular-nums text-xs font-semibold text-slate-700">{b.bookingCode}</td>
                   <td className="px-4 py-3">
                     <p className="font-semibold text-slate-800">{b.contactName}</p>
                     <p className="text-xs text-slate-400">{b.contactPhone}</p>

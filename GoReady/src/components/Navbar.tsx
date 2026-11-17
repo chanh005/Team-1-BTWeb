@@ -95,8 +95,8 @@ const Navbar: React.FC<NavbarProps> = ({
     <header className="sticky top-0 z-40 bg-white/90 backdrop-blur border-b border-slate-100">
       <div className="container-px mx-auto flex h-16 items-center justify-between gap-4">
         <button onClick={() => onNavigate('home')} className="flex items-center gap-2 shrink-0">
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white text-lg font-heading font-bold shadow-card">G</span>
-          <span className="font-heading text-xl font-bold text-slate-900">
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white text-lg font-bold shadow-card">G</span>
+          <span className="text-xl font-bold text-slate-900">
             Go<span className="text-primary">Ready</span>
           </span>
         </button>

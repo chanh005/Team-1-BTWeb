@@ -379,7 +379,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
       {showForm && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
           <form onSubmit={handleSubmit} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-card">
-            <h2 className="font-heading text-lg font-bold text-slate-900">{editingTour ? 'Sửa tour' : 'Thêm tour mới'}</h2>
+            <h2 className="text-lg font-bold text-slate-900">{editingTour ? 'Sửa tour' : 'Thêm tour mới'}</h2>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <label className="col-span-2 flex flex-col gap-1">
                 <span className="text-xs font-semibold text-slate-500">Tên tour</span>
@@ -539,7 +539,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
       {deleteTarget && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-card">
-            <h2 className="font-heading text-lg font-bold text-slate-900">Xoá tour?</h2>
+            <h2 className="text-lg font-bold text-slate-900">Xoá tour?</h2>
             <p className="mt-2 text-sm text-slate-500">
               Bạn có chắc muốn xoá <span className="font-semibold text-slate-700">{deleteTarget.name}</span>? Hành động này không thể hoàn tác.
             </p>

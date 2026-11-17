@@ -58,7 +58,7 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <button onClick={() => onOpenDetail(tour)} className="text-left">
-          <h3 className="font-heading text-base font-bold text-slate-900 line-clamp-1 group-hover:text-primary">{tour.name}</h3>
+          <h3 className="text-base font-bold text-slate-900 line-clamp-1 group-hover:text-primary">{tour.name}</h3>
         </button>
         <p className="line-clamp-2 text-xs text-slate-500">{tour.shortDescription}</p>
 
@@ -90,7 +90,7 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
         <div className="mt-auto flex items-end justify-between pt-2">
           <div>
             {pct > 0 && <div className="text-xs text-slate-400 line-through">{formatVND(tour.price)}</div>}
-            <div className="font-heading text-lg font-bold text-primary-700">{formatVND(displayPrice)}</div>
+            <div className="text-lg font-bold text-primary-700">{formatVND(displayPrice)}</div>
             <div className="text-[10px] text-slate-400">/ khách</div>
           </div>
           <button

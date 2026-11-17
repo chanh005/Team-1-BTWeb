@@ -3,7 +3,7 @@ import { useCountdown } from './tripUtils';
 
 const Block: React.FC<{ value: number; label: string }> = ({ value, label }) => (
   <div className="flex flex-col items-center rounded-xl bg-white/15 px-3 py-2 backdrop-blur">
-    <span className="font-heading text-xl font-bold tabular-nums">{String(value).padStart(2, '0')}</span>
+    <span className="text-xl font-bold tabular-nums">{String(value).padStart(2, '0')}</span>
     <span className="text-[10px] uppercase tracking-wide text-white/80">{label}</span>
   </div>
 );

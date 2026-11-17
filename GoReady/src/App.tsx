@@ -476,7 +476,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-surface font-body">
+    <div className="min-h-screen bg-surface">
       <Navbar
         view={view}
         onNavigate={(v) => {
@@ -535,7 +535,7 @@ function App() {
             <>
               <section className="container-px mx-auto py-8">
                 <div className="mb-5 flex items-center justify-between">
-                  <h2 className="font-heading text-xl font-bold text-slate-900">Tour nổi bật</h2>
+                  <h2 className="text-xl font-bold text-slate-900">Tour nổi bật</h2>
                   <button
                     onClick={() => openExplore()}
                     className="rounded-full border border-primary px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary-50"
@@ -566,7 +566,7 @@ function App() {
         <>
           <section className="border-b border-slate-100 bg-white">
             <div className="container-px mx-auto py-6">
-              <h1 className="font-heading text-2xl font-bold text-slate-900">Khám phá Tour</h1>
+              <h1 className="text-2xl font-bold text-slate-900">Khám phá Tour</h1>
               <div className="mt-4 flex flex-col gap-3 sm:flex-row">
                 <DestinationSearchBox
                   value={filters.destination}
@@ -636,7 +636,7 @@ function App() {
               />
               <div className="fixed inset-y-0 left-0 flex max-w-xs w-full flex-col bg-white shadow-2xl animate-fadeIn">
                 <div className="flex items-center justify-between border-b border-slate-100 p-4">
-                  <span className="font-heading font-bold text-slate-900">Bộ lọc tour</span>
+                  <span className="font-bold text-slate-900">Bộ lọc tour</span>
                   <button
                     onClick={() => setIsMobileFilterOpen(false)}
                     className="grid h-8 w-8 place-items-center rounded-full text-slate-500 hover:bg-slate-100"
@@ -682,7 +682,7 @@ function App() {
               {/* Tour Results */}
               <div className="flex-1 min-w-0">
                 <div className="mb-5 flex items-center justify-between">
-                  <h2 className="font-heading text-xl font-bold text-slate-900">
+                  <h2 className="text-xl font-bold text-slate-900">
                     {appliedDestination ? `Kết quả cho "${appliedDestination}"` : 'Tất cả tour'}
                     <span className="ml-2 text-sm font-normal text-slate-400">({filteredTours.length} tour)</span>
                   </h2>
@@ -721,7 +721,7 @@ function App() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                       </svg>
                     </div>
-                    <h3 className="mb-1 font-heading text-lg font-bold text-slate-900">
+                    <h3 className="mb-1 text-lg font-bold text-slate-900">
                       Không tìm thấy tour phù hợp
                     </h3>
                     <p className="mb-5 max-w-md text-xs text-slate-500">

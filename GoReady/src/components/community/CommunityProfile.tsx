@@ -98,7 +98,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
 
   const header = (
     <div>
-      <h2 className="font-heading text-2xl font-extrabold text-slate-900">Hồ sơ du lịch</h2>
+      <h2 className="text-2xl font-extrabold text-slate-900">Hồ sơ du lịch</h2>
       <p className="mt-1 text-[15px] text-slate-500">Hành trình, huy hiệu và bài viết của bạn</p>
     </div>
   );
@@ -143,7 +143,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
         )}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-heading text-lg font-extrabold text-slate-900">{data.displayName}</p>
+            <p className="text-lg font-extrabold text-slate-900">{data.displayName}</p>
             {earned.map((b) => (
               <span key={b.id} className="rounded-full bg-sky-50 px-2.5 py-1 text-xs font-semibold text-primary">{b.name}</span>
             ))}
@@ -198,7 +198,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
         ].map(([k, v]) => (
           <div key={k} className="rounded-2xl border border-slate-200 p-4">
             <p className="text-xs text-slate-500">{k}</p>
-            <p className="mt-1 font-heading text-2xl font-extrabold text-primary">{v}</p>
+            <p className="mt-1 text-2xl font-extrabold text-primary">{v}</p>
           </div>
         ))}
       </div>
@@ -227,7 +227,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
             <>
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="flex items-baseline justify-between">
-                  <p className="font-heading text-[15px] font-bold text-slate-900">Bản đồ hành trình</p>
+                  <p className="text-[15px] font-bold text-slate-900">Bản đồ hành trình</p>
                   <p className="text-xs text-slate-500">Đã đi {data.visitedProvinces.length}/{data.allProvinces.length} tỉnh thành</p>
                 </div>
                 <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
@@ -243,7 +243,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
                 )}
                 {data.nextBadgeHint && <p className="mt-3 text-xs text-slate-500">{data.nextBadgeHint}</p>}
               </div>
-              <p className="font-heading text-[15px] font-bold text-slate-900">Bài gần đây</p>
+              <p className="text-[15px] font-bold text-slate-900">Bài gần đây</p>
               <RecentPosts posts={data.recentPosts} />
             </>
           )}
@@ -270,7 +270,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
 
         <aside className="flex flex-col gap-4">
           <section className="rounded-2xl border border-slate-200 p-4">
-            <p className="font-heading text-[15px] font-bold text-slate-900">Huy hiệu</p>
+            <p className="text-[15px] font-bold text-slate-900">Huy hiệu</p>
             <ul className="mt-3 space-y-2">
               {data.badges.map((b) => (
                 <li key={b.id} className="flex items-center justify-between text-sm">
@@ -283,7 +283,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
             </ul>
           </section>
           <section className="rounded-2xl border border-slate-200 p-4">
-            <p className="font-heading text-[15px] font-bold text-slate-900">Tóm tắt uy tín</p>
+            <p className="text-[15px] font-bold text-slate-900">Tóm tắt uy tín</p>
             <p className="mt-2 text-sm text-slate-600">
               {data.helpfulCount > 0
                 ? `Review của bạn đã nhận ${data.helpfulCount} lượt hữu ích từ cộng đồng.`
@@ -291,7 +291,7 @@ export const CommunityProfile: React.FC<{ currentUser: AccountUser | null }> = (
             </p>
           </section>
           <section className="rounded-2xl border border-slate-200 p-4">
-            <p className="font-heading text-[15px] font-bold text-slate-900">Quyền riêng tư</p>
+            <p className="text-[15px] font-bold text-slate-900">Quyền riêng tư</p>
             <div className="mt-2 flex items-center justify-between text-sm text-slate-700">
               <span>Công khai hồ sơ</span>
               <button

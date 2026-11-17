@@ -29,8 +29,7 @@ export default {
         surface: '#f8fafc',
       },
       fontFamily: {
-        heading: ['"Outfit"', 'sans-serif'],
-        body: ['"Plus Jakarta Sans"', 'sans-serif'],
+        sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
         card: '0 8px 30px -8px rgba(84,141,215,0.25)',

@@ -25,7 +25,7 @@ const HeroSearch: React.FC<HeroSearchProps> = ({ filters, onChange, onSearch }) 
       <div className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent/30 blur-3xl" />
       <div className="pointer-events-none absolute -left-24 bottom-0 h-72 w-72 rounded-full bg-cream/20 blur-3xl" />
       <div className="container-px relative mx-auto py-14 sm:py-20">
-        <h1 className="max-w-2xl font-heading text-3xl font-bold leading-tight sm:text-5xl">
+        <h1 className="max-w-2xl text-3xl font-bold leading-tight sm:text-5xl">
           Sẵn sàng cho hành trình tiếp theo cùng <span className="text-cream">GoReady</span>
         </h1>
 

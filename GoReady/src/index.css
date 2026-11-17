@@ -7,11 +7,28 @@
     scroll-behavior: smooth;
   }
   body {
-    @apply bg-surface text-slate-800 font-body antialiased;
+    @apply bg-surface text-slate-800 font-sans antialiased;
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-heading;
+  /* Một họ phông duy nhất (Be Vietnam Pro): điều khiển form kế thừa từ body */
+  input, button, select, textarea {
+    font-family: inherit;
   }
+}
+
+/* Quy ước chữ — xem FONT_GUIDE.md. Chữ mới phải dùng class .t-*, không khai báo font-family ở nơi khác. */
+@layer components {
+  .t-logo    { @apply text-[24px] font-extrabold; }
+  .t-menu    { @apply text-[16px] font-medium; }
+  .t-h1      { font-size: clamp(36px, 5vw, 56px); @apply font-extrabold leading-[1.15]; }
+  .t-h2      { @apply text-[30px] font-bold leading-[1.25]; }
+  .t-h3      { @apply text-[18px] font-semibold leading-[1.35]; }
+  .t-body    { @apply text-[16px] font-normal leading-[1.5]; }
+  .t-caption { @apply text-[14px] font-normal; }
+  .t-label   { @apply text-[12px] font-semibold uppercase tracking-[0.03em]; }
+  .t-price   { @apply text-[20px] font-bold; }
+  .t-btn     { @apply text-[16px] font-semibold; }
+  .t-input   { @apply text-[16px] font-normal; }
+  .t-badge   { @apply text-[12px] font-semibold; }
 }
 
 @layer utilities {
@@ -24,5 +41,5 @@
 }
 
 .leaflet-container {
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'Be Vietnam Pro', system-ui, sans-serif;
 }

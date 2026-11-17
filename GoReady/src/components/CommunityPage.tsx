@@ -9,6 +9,8 @@ import CommunityFeed from './community/CommunityFeed';
 import CommunityReviewDetail from './community/CommunityReviewDetail';
 import CommunityComposer from './community/CommunityComposer';
 import CommunityProfile from './community/CommunityProfile';
+import ArticleDetail from './community/ArticleDetail';
+import { articleSlugFromHash } from '../config/communityRoute';
 import type { AccountUser } from '../types';
 
 export const CommunityPage: React.FC<{ currentUser: AccountUser | null }> = ({ currentUser }) => {
@@ -20,9 +22,14 @@ export const CommunityPage: React.FC<{ currentUser: AccountUser | null }> = ({ c
   };
 
   const [active, setActive] = React.useState<CommunitySectionId>(() => readCommunitySection(window.location.hash));
+  // Đang đọc một bài cẩm nang (#/cong-dong-du-lich/cam-nang/<slug>) thì thay phần nội dung, giữ nguyên thanh mục
+  const [articleSlug, setArticleSlug] = React.useState<string | null>(() => articleSlugFromHash(window.location.hash));
 
   React.useEffect(() => {
-    const sync = () => setActive(readCommunitySection(window.location.hash));
+    const sync = () => {
+      setActive(readCommunitySection(window.location.hash));
+      setArticleSlug(articleSlugFromHash(window.location.hash));
+    };
     window.addEventListener('hashchange', sync);
     return () => window.removeEventListener('hashchange', sync);
   }, []);
@@ -62,7 +69,7 @@ export const CommunityPage: React.FC<{ currentUser: AccountUser | null }> = ({ c
 
         {/* Nội dung mục đang chọn */}
         <div className="min-w-0 flex-1 rounded-2xl border border-slate-100 bg-white p-5 shadow-soft sm:p-8">
-          {SECTION_VIEWS[active]}
+          {articleSlug ? <ArticleDetail key={articleSlug} slug={articleSlug} /> : SECTION_VIEWS[active]}
         </div>
       </div>
     </main>

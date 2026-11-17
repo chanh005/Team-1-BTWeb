@@ -30,10 +30,10 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
         <div className="absolute inset-x-0 top-0 flex items-start justify-between p-3">
           <div className="flex flex-col gap-1.5">
             {pct > 0 && (
-              <span className="w-max rounded-full bg-cream px-2.5 py-1 t-badge text-primary-800 shadow">-{pct}%</span>
+              <span className="w-max rounded-full bg-cream px-2.5 py-1 text-[11px] font-bold text-primary-800 shadow">-{pct}%</span>
             )}
             {tour.hotelStars > 0 && (
-              <span className="w-max rounded-full bg-white/90 px-2.5 py-1 t-badge text-slate-700 shadow">
+              <span className="w-max rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-slate-700 shadow">
                 {'★'.repeat(tour.hotelStars)} khách sạn
               </span>
             )}
@@ -58,9 +58,9 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
 
       <div className="flex flex-1 flex-col gap-2 p-4">
         <button onClick={() => onOpenDetail(tour)} className="text-left">
-          <h3 className="t-h3 text-slate-900 line-clamp-1 group-hover:text-primary">{tour.name}</h3>
+          <h3 className="text-base font-bold text-slate-900 line-clamp-1 group-hover:text-primary">{tour.name}</h3>
         </button>
-        <p className="line-clamp-2 t-caption text-slate-500">{tour.shortDescription}</p>
+        <p className="line-clamp-2 text-xs text-slate-500">{tour.shortDescription}</p>
 
         <div className="flex items-center gap-2 text-xs text-slate-500">
           {tour.rating > 0 ? (
@@ -90,12 +90,12 @@ const TourCard: React.FC<TourCardProps> = ({ tour, isSaved, isComparing, compare
         <div className="mt-auto flex items-end justify-between pt-2">
           <div>
             {pct > 0 && <div className="text-xs text-slate-400 line-through">{formatVND(tour.price)}</div>}
-            <div className="t-price text-primary-700">{formatVND(displayPrice)}</div>
+            <div className="text-lg font-bold text-primary-700">{formatVND(displayPrice)}</div>
             <div className="text-[10px] text-slate-400">/ khách</div>
           </div>
           <button
             onClick={() => onOpenDetail(tour)}
-            className="rounded-full bg-primary px-4 py-2 t-btn text-white shadow-card transition hover:bg-primary-600"
+            className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-white shadow-card transition hover:bg-primary-600"
           >
             Xem chi tiết
           </button>

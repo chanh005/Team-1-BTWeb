@@ -72,7 +72,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, 
             >
               ☰
             </button>
-            <h1 className="t-h2 text-slate-900">{NAV_ITEMS.find((n) => n.value === page)?.label}</h1>
+            <h1 className="text-lg font-bold text-slate-900">{NAV_ITEMS.find((n) => n.value === page)?.label}</h1>
             <div className="flex items-center gap-3">
               <span className="hidden text-sm font-semibold text-slate-600 sm:inline">Xin chào, {adminName}</span>
               <button

@@ -37,7 +37,7 @@ const Dashboard: React.FC<DashboardProps> = ({ tours, bookings, users }) => {
               <span className="text-xs font-semibold uppercase tracking-wide text-slate-400">{s.label}</span>
               <span className="text-lg" aria-hidden>{s.icon}</span>
             </div>
-            <p className="mt-3 t-price text-slate-900">{s.value}</p>
+            <p className="mt-3 text-2xl font-bold text-slate-900">{s.value}</p>
           </div>
         ))}
       </div>

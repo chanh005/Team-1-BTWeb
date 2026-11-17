@@ -302,7 +302,7 @@ const TourManagement: React.FC<TourManagementProps> = ({ tours, onAdd, onUpdate,
       )}
 
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-soft">
-        <table className="w-full min-w-[800px] text-left t-caption">
+        <table className="w-full min-w-[800px] text-left text-sm">
           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3">Tour</th>

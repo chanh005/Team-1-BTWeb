@@ -96,12 +96,12 @@ const Navbar: React.FC<NavbarProps> = ({
       <div className="container-px mx-auto flex h-16 items-center justify-between gap-4">
         <button onClick={() => onNavigate('home')} className="flex items-center gap-2 shrink-0">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white text-lg font-bold shadow-card">G</span>
-          <span className="t-logo text-slate-900">
+          <span className="text-xl font-bold text-slate-900">
             Go<span className="text-primary">Ready</span>
           </span>
         </button>
 
-        <nav className="hidden md:flex items-center gap-1 rounded-full bg-slate-100 p-1 t-menu">
+        <nav className="hidden md:flex items-center gap-1 rounded-full bg-slate-100 p-1 text-sm font-medium">
           {MAIN_LINKS.map((link) => (
             <button
               key={link.label}
@@ -116,19 +116,19 @@ const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center gap-2 sm:gap-3">
           <button
             onClick={onOpenSaved}
-            className="relative flex items-center gap-2 rounded-full border border-slate-200 px-3 sm:px-4 py-2 t-btn text-slate-700 hover:border-primary hover:text-primary transition-colors"
+            className="relative flex items-center gap-2 rounded-full border border-slate-200 px-3 sm:px-4 py-2 text-sm font-semibold text-slate-700 hover:border-primary hover:text-primary transition-colors"
           >
             <span aria-hidden>♡</span>
             <span className="hidden sm:inline">Đã lưu</span>
             {(savedCount > 0 || compareCount > 0) && (
-              <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 t-badge text-white">
+              <span className="absolute -top-1.5 -right-1.5 grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
                 {savedCount}
               </span>
             )}
           </button>
           <button
             onClick={onOpenAi}
-            className="hidden sm:flex items-center gap-2 rounded-full border border-accent-dark/40 bg-accent/20 px-4 py-2 t-btn text-primary-700 hover:bg-accent/40 transition-colors"
+            className="hidden sm:flex items-center gap-2 rounded-full border border-accent-dark/40 bg-accent/20 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-accent/40 transition-colors"
           >
             <span aria-hidden>✨</span> AI Lập Lịch Trình
           </button>

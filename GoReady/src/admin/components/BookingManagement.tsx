@@ -43,7 +43,7 @@ const BookingManagement: React.FC<BookingManagementProps> = ({ bookings, tours, 
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-slate-100 bg-white shadow-soft">
-        <table className="w-full min-w-[820px] text-left t-caption">
+        <table className="w-full min-w-[820px] text-left text-sm">
           <thead className="border-b border-slate-100 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-400">
             <tr>
               <th className="px-4 py-3">Mã đơn</th>

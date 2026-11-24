@@ -5,7 +5,7 @@ import { Logo } from './ui';
 export const NAV_ITEMS: { path: string; label: string; soon?: boolean }[] = [
   { path: '/tong-quan', label: 'Tổng quan' },
   { path: '/tour-cua-toi', label: 'Tour của tôi' },
-  { path: '/tour-moi', label: 'Đăng tour mới', soon: true },
+  { path: '/tour-moi', label: 'Đăng tour mới' },
   { path: '/booking', label: 'Booking' },
   { path: '/lich-khoi-hanh', label: 'Lịch khởi hành', soon: true },
   { path: '/danh-gia', label: 'Đánh giá của khách', soon: true },
@@ -26,8 +26,8 @@ const SellerShell: React.FC<Props> = ({ path, seller, pendingBookings = 0, onLog
   const [menuOpen, setMenuOpen] = React.useState(false); // menu tài khoản
   const [navOpen, setNavOpen] = React.useState(false); // menu trái trên điện thoại
 
-  // "Đăng tour mới" sáng lên cả khi đang sửa tour (đường dẫn /tour/:id/sua)
-  const activePath = path.startsWith('/tour/') ? '/tour-moi' : path;
+  // Đang sửa một tour (đường dẫn /tour/:id/sua) thì mục "Tour của tôi" sáng lên
+  const activePath = path.startsWith('/tour/') ? '/tour-cua-toi' : path;
 
   const Nav = () => (
     <nav className="flex flex-col gap-1">

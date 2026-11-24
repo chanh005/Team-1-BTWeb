@@ -52,6 +52,33 @@ export type SellerProfile = Omit<AdminSeller, 'email' | 'phone'>;
 
 export type SellerTourStatus = 'draft' | 'pending_review' | 'active' | 'rejected' | 'hidden';
 
+/** Tour đầy đủ của người bán (form Đăng tour / Sửa tour). */
+export interface SellerTourFull {
+  id: string;
+  status: SellerTourStatus;
+  reject_reason: string | null;
+  name: string;
+  destination: string;
+  departure: string;
+  transport: string;
+  hotelStars: number;
+  duration: number;
+  nights: number;
+  groupSizeTags: string[];
+  shortDescription: string;
+  coverImage: string;
+  images: string[];
+  itinerary: { day_number: number; title: string; description: string; has_breakfast: boolean; has_lunch: boolean; has_dinner: boolean }[];
+  price: number;
+  childPrice: number | null;
+  departures: { id: number; departure_date: string; price: number | null; max_seats: number; booked_seats: number; booking_deadline: string | null }[];
+  includes: string[];
+  excludes: string[];
+  cancellationPolicy: string;
+  child_policy: string | null;
+  notes: string | null;
+}
+
 /** Một dòng trong "Tour của tôi". */
 export interface SellerTourRow {
   id: string;
@@ -166,6 +193,10 @@ export const api = {
     if (opts.q) qs.set('q', opts.q);
     return request<{ tours: SellerTourRow[]; counts: Record<SellerTourStatus, number> }>(`/seller/tours?${qs}`, { headers: bearer(token) });
   },
+  sellerGetTour: (token: string, id: string) => request<SellerTourFull>(`/seller/tours/${id}`, { headers: bearer(token) }),
+  /** Tạo bản nháp (id = null) hoặc lưu tour đã có. Bản nháp không cần điền đủ. */
+  sellerSaveTour: (token: string, id: string | null, body: Record<string, unknown>) =>
+    request<SellerTourFull>(id ? `/seller/tours/${id}` : '/seller/tours', { method: id ? 'PUT' : 'POST', headers: bearer(token), body: JSON.stringify(body) }),
   sellerTourAction: (token: string, id: string, action: 'hide' | 'show' | 'submit') =>
     request<unknown>(`/seller/tours/${id}/${action}`, { method: 'POST', headers: bearer(token), body: '{}' }),
   sellerDeleteTour: (token: string, id: string) => request<void>(`/seller/tours/${id}`, { method: 'DELETE', headers: bearer(token) }),

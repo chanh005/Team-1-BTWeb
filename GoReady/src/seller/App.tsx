@@ -9,6 +9,7 @@ import SellerShell, { NAV_ITEMS } from './SellerShell';
 import MyTours from './MyTours';
 import BookingManagement, { BOOKING_TABS, type Tab as BookingTab } from './BookingManagement';
 import Dashboard from './Dashboard';
+import TourForm from './TourForm';
 import ComingSoon from './ComingSoon';
 
 function App() {
@@ -101,8 +102,8 @@ function App() {
     const s = params.get('status') ?? '';
     page = <MyTours key={query} token={token} onUnauthorized={logout} initialStatus={['draft', 'pending_review', 'active', 'rejected', 'hidden'].includes(s) ? (s as SellerTourStatus) : ''} />;
   } else if (route === '/booking') page = <BookingManagement key={query} token={token} onUnauthorized={logout} onChanged={refreshPending} initialTab={bookingTab} initialId={params.get('id') ?? ''} />;
-  else if (route === '/tour-moi') page = <ComingSoon title="Đăng tour mới" note="Form đăng tour (5 phần) đang được làm ở bước tiếp theo." />;
-  else if (route.startsWith('/tour/')) page = <ComingSoon title="Sửa tour" note="Form sửa tour dùng chung với form Đăng tour mới, đang được làm ở bước tiếp theo." />;
+  else if (route === '/tour-moi') page = <TourForm key="tour-form" token={token} onUnauthorized={logout} navigate={navigate} />;
+  else if (/^\/tour\/[^/]+\/sua$/.test(route)) page = <TourForm key="tour-form" token={token} tourId={route.split('/')[2]} onUnauthorized={logout} navigate={navigate} />;
   else if (label) page = <ComingSoon title={label} />;
   else page = <ComingSoon title="Không tìm thấy trang" note="Đường dẫn này không tồn tại trong Seller Center." />;
 

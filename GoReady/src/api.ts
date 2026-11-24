@@ -15,14 +15,130 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     const body = await res.json().catch(() => ({}));
     const err = new Error(body.error || `Request failed: ${res.status}`);
     (err as Error & { status?: number }).status = res.status;
+    // Lỗi theo từng ô nhập của Seller Center: { tenTruong: 'thông báo' }
+    (err as Error & { fields?: Record<string, string> }).fields = body.fields;
     throw err;
   }
   if (res.status === 204) return undefined as T;
   return res.json() as Promise<T>;
 }
 
+const bearer = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+/** Hồ sơ người bán (Admin xem để duyệt). Tên trường theo bảng `sellers`. */
+export interface AdminSeller {
+  id: string;
+  business_name: string;
+  tax_code: string;
+  business_type: 'domestic_travel' | 'international_travel' | 'tour_organizer';
+  legal_representative: string;
+  address: string;
+  hotline: string;
+  website: string | null;
+  logo_url: string | null;
+  travel_license_number: string | null;
+  travel_license_issued_at: string | null;
+  business_reg_file: string | null;
+  travel_license_file: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  reject_reason: string | null;
+  created_at: string;
+  email: string;
+  phone: string;
+}
+
+/** Hồ sơ của chính người bán đang đăng nhập. */
+export type SellerProfile = Omit<AdminSeller, 'email' | 'phone'>;
+
+export type SellerTourStatus = 'draft' | 'pending_review' | 'active' | 'rejected' | 'hidden';
+
+/** Một dòng trong "Tour của tôi". */
+export interface SellerTourRow {
+  id: string;
+  name: string;
+  destination: string;
+  coverImage: string;
+  departure: string;
+  transport: string;
+  hotelStars: number;
+  price: number;
+  duration: number;
+  nights: number;
+  status: SellerTourStatus;
+  reject_reason: string | null;
+  next_departure: string | null;
+  max_seats: number;
+  booked_seats: number;
+}
+
+/** Tour của người bán (Admin xem để duyệt). */
+export interface AdminSellerTour {
+  id: string;
+  status: 'draft' | 'pending_review' | 'active' | 'rejected' | 'hidden';
+  seller_name: string | null;
+  name: string;
+  destination: string;
+  departure: string;
+  transport: string;
+  hotelStars: number;
+  duration: number;
+  nights: number;
+  coverImage: string;
+  price: number;
+  discountPrice: number | null;
+  childPrice: number | null;
+  shortDescription: string;
+  itinerary: { day_number: number; title: string; description: string; has_breakfast: boolean; has_lunch: boolean; has_dinner: boolean }[];
+  departures: { id: number; departure_date: string; price: number | null; max_seats: number; booked_seats: number; booking_deadline: string | null }[];
+  includes: string[];
+  excludes: string[];
+  cancellationPolicy: string;
+  child_policy: string | null;
+  notes: string | null;
+}
+
 export const api = {
   getTours: () => request<Tour[]>('/tours'),
+  /** Trang người mua: chỉ tour đã được duyệt. (Admin dùng getTours để thấy tất cả.) */
+  getPublicTours: () => request<Tour[]>('/tours?public=1'),
+
+  // --- Seller Center (token ký ở server; Admin cũng lấy token qua sellerLogin) ---
+  sellerLogin: (email: string, password: string) =>
+    request<{ token: string; user: { id: string; name: string; email: string; role: string }; seller: SellerProfile | null }>('/seller/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  sellerRegister: (body: Record<string, unknown>) =>
+    request<{ token: string; seller: SellerProfile }>('/seller/register', { method: 'POST', body: JSON.stringify(body) }),
+  sellerMe: (token: string) => request<{ user: { id: string; name: string; email: string; phone: string }; seller: SellerProfile }>('/seller/me', { headers: bearer(token) }),
+  sellerResubmit: (token: string, body: Record<string, unknown>) =>
+    request<{ seller: SellerProfile }>('/seller/me', { method: 'PUT', headers: bearer(token), body: JSON.stringify(body) }),
+  /** Tải file lên (logo / giấy phép / ảnh tour). Trả về đường dẫn để lưu vào hồ sơ. */
+  sellerUpload: (kind: 'logo' | 'business_reg' | 'travel_license' | 'tour_image', dataUrl: string) =>
+    request<{ id: string; url: string }>('/seller/files', { method: 'POST', body: JSON.stringify({ kind, dataUrl }) }),
+  sellerListTours: (token: string, opts: { status?: string; q?: string } = {}) => {
+    const qs = new URLSearchParams();
+    if (opts.status) qs.set('status', opts.status);
+    if (opts.q) qs.set('q', opts.q);
+    return request<{ tours: SellerTourRow[]; counts: Record<SellerTourStatus, number> }>(`/seller/tours?${qs}`, { headers: bearer(token) });
+  },
+  sellerTourAction: (token: string, id: string, action: 'hide' | 'show' | 'submit') =>
+    request<unknown>(`/seller/tours/${id}/${action}`, { method: 'POST', headers: bearer(token), body: '{}' }),
+  sellerDeleteTour: (token: string, id: string) => request<void>(`/seller/tours/${id}`, { method: 'DELETE', headers: bearer(token) }),
+  adminListSellers: (token: string, status = 'pending') =>
+    request<AdminSeller[]>(`/seller/admin/sellers?status=${status}`, { headers: bearer(token) }),
+  adminReviewSeller: (token: string, id: string, decision: 'approve' | 'reject', reason?: string) =>
+    request<AdminSeller>(`/seller/admin/sellers/${id}/${decision}`, { method: 'POST', headers: bearer(token), body: JSON.stringify({ reason }) }),
+  adminListSellerTours: (token: string, status = 'pending_review') =>
+    request<AdminSellerTour[]>(`/seller/admin/tours?status=${status}`, { headers: bearer(token) }),
+  adminReviewSellerTour: (token: string, id: string, decision: 'approve' | 'reject', reason?: string) =>
+    request<AdminSellerTour>(`/seller/admin/tours/${id}/${decision}`, { method: 'POST', headers: bearer(token), body: JSON.stringify({ reason }) }),
+  /** Tải file giấy phép (cần token) và trả về blob để mở trong tab mới. */
+  fetchSellerFile: async (token: string, url: string) => {
+    const res = await fetch(url, { headers: bearer(token) });
+    if (!res.ok) throw new Error(`Không mở được file (${res.status})`);
+    return res.blob();
+  },
   createTour: (tour: Partial<Tour>) => request<Tour>('/tours', { method: 'POST', body: JSON.stringify(tour) }),
   updateTour: (id: string, patch: Partial<Tour>) => request<Tour>(`/tours/${id}`, { method: 'PUT', body: JSON.stringify(patch) }),
   toggleTourHidden: (id: string) => request<Tour>(`/tours/${id}/hidden`, { method: 'PATCH' }),

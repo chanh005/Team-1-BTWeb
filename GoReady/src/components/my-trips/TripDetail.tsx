@@ -26,6 +26,8 @@ import {
 interface TripDetailProps {
   trip: ChuyenDi;
   phase: TripPhase;
+  /** Lý do từ chối của người bán (khi phase = 'rejected'). */
+  sellerNote?: string;
   coverFallback?: string;
   /** Tour's own "highlights" (điểm nổi bật), shown as a fallback when the trip's schedule has no attraction/food stop to list. */
   tourHighlights?: string[];
@@ -68,6 +70,8 @@ const SECTIONS = [
 ];
 
 const PHASE_BADGE: Record<TripPhase, { text: string; cls: string }> = {
+  pending: { text: '⏳ Chờ nhà tổ chức xác nhận', cls: 'bg-white/20' },
+  rejected: { text: '❌ Bị từ chối', cls: 'bg-white/20' },
   upcoming: { text: 'Sắp khởi hành', cls: 'bg-white/20' },
   ongoing: { text: '🚌 Đang diễn ra', cls: 'bg-white/20' },
   completed: { text: '✅ Đã hoàn thành', cls: 'bg-white/20' },
@@ -137,14 +141,14 @@ const TicketCard: React.FC<{ ve: Ve }> = ({ ve }) => {
   );
 };
 
-const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tourHighlights, onBack, onRequestCancel }) => {
+const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, sellerNote, coverFallback, tourHighlights, onBack, onRequestCancel }) => {
   const days = React.useMemo(() => groupByDay(trip.lichTrinh), [trip.lichTrinh]);
   const legs = React.useMemo(() => travelLegs(trip.lichTrinh), [trip.lichTrinh]);
   const { sights, food } = React.useMemo(() => destinationsOf(trip.lichTrinh), [trip.lichTrinh]);
   const mapData = React.useMemo(() => mapDataOf(trip.lichTrinh), [trip.lichTrinh]);
   const endRow = React.useMemo(() => endOfProgram(trip.lichTrinh), [trip.lichTrinh]);
   const pickupService = trip.ve.find((v) => v.loaiVe === 'Dịch vụ thêm' && /đưa đón|xe/i.test(v.tenVe));
-  const cancelled = phase === 'cancelled';
+  const cancelled = phase === 'cancelled' || phase === 'rejected';
   const cover = trip.anhBia || coverFallback;
   const [coverFailed, setCoverFailed] = React.useState(false);
   const guests = [
@@ -182,6 +186,18 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tou
           )}
         </div>
       </div>
+
+      {phase === 'rejected' && (
+        <div className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <p className="font-semibold">Nhà tổ chức đã từ chối yêu cầu đặt tour này.</p>
+          {sellerNote && <p className="mt-1">Lý do: {sellerNote}</p>}
+        </div>
+      )}
+      {phase === 'pending' && (
+        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Yêu cầu của bạn đang chờ nhà tổ chức xác nhận. Chỗ chỉ được giữ chính thức sau khi họ xác nhận.
+        </div>
+      )}
 
       <nav aria-label="Các mục của chuyến đi" className="mt-5 flex gap-2 overflow-x-auto pb-1 no-scrollbar">
         {SECTIONS.map((sec, i) => (
@@ -407,7 +423,7 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, coverFallback, tou
                 📅 Thêm vào lịch (.ics)
               </button>
             </div>
-            {!cancelled && phase === 'upcoming' && onRequestCancel && (
+            {!cancelled && (phase === 'upcoming' || phase === 'pending') && onRequestCancel && (
               <button
                 onClick={() => onRequestCancel(trip)}
                 className="mt-4 w-full rounded-xl border border-red-200 py-2 text-xs font-bold text-red-500 transition hover:bg-red-50"

@@ -7,13 +7,15 @@ import { formatVND } from '../../utils/format';
 interface TripCardProps {
   trip: ChuyenDi;
   phase: TripPhase;
+  /** Lý do từ chối của người bán (khi phase = 'rejected'). */
+  sellerNote?: string;
   coverFallback?: string;
   onOpen: (trip: ChuyenDi) => void;
   onRequestCancel?: (trip: ChuyenDi) => void;
 }
 
-const TripCard: React.FC<TripCardProps> = ({ trip, phase, coverFallback, onOpen, onRequestCancel }) => {
-  const cancelled = phase === 'cancelled';
+const TripCard: React.FC<TripCardProps> = ({ trip, phase, sellerNote, coverFallback, onOpen, onRequestCancel }) => {
+  const cancelled = phase === 'cancelled' || phase === 'rejected';
   const cover = trip.anhBia || coverFallback;
   const [coverFailed, setCoverFailed] = React.useState(false);
 
@@ -34,7 +36,11 @@ const TripCard: React.FC<TripCardProps> = ({ trip, phase, coverFallback, onOpen,
             )}
           </div>
           <div className="mt-4 flex flex-wrap items-center gap-2">
-            {cancelled ? (
+            {phase === 'rejected' ? (
+              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">❌ Bị từ chối{sellerNote ? `: ${sellerNote}` : ''}</span>
+            ) : phase === 'pending' ? (
+              <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">⏳ Chờ nhà tổ chức xác nhận</span>
+            ) : cancelled ? (
               <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">❌ Đã hủy tour</span>
             ) : phase === 'ongoing' ? (
               <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">🚌 Đang diễn ra</span>
@@ -51,7 +57,7 @@ const TripCard: React.FC<TripCardProps> = ({ trip, phase, coverFallback, onOpen,
         </div>
         <p className="border-t border-slate-100 px-4 py-2.5 text-xs font-semibold text-primary">Xem chi tiết chuyến đi →</p>
       </button>
-      {!cancelled && phase === 'upcoming' && onRequestCancel && (
+      {!cancelled && (phase === 'upcoming' || phase === 'pending') && onRequestCancel && (
         <div className="border-t border-slate-100 p-3">
           <button
             onClick={() => onRequestCancel(trip)}

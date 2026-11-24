@@ -68,7 +68,7 @@ function App() {
   // Shared state: served by the backend API, polled so changes made from the
   // Admin console (add/edit/hide a tour, change a booking status, lock a user)
   // show up here without a manual refresh.
-  const { data: toursData, refresh: refreshTours } = usePolledResource(api.getTours);
+  const { data: toursData, refresh: refreshTours } = usePolledResource(api.getPublicTours); // chỉ tour đã được duyệt (status = 'active')
   const { data: bookingsData, refresh: refreshBookings } = usePolledResource(api.getBookings);
   const { data: accountsData, refresh: refreshAccounts } = usePolledResource(api.getUsers);
   const tours = toursData ?? [];
@@ -342,8 +342,9 @@ function App() {
       await api.createBooking(booking);
       await Promise.all([refreshBookings(), refreshAccounts()]);
       notify('Đặt tour thành công! Xem vé tại "Chuyến đi của tôi"');
-    } catch {
-      notify('Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend đã chạy chưa.');
+    } catch (err) {
+      // 409: tour của người bán không còn nhận đặt cho ngày này (hết chỗ / hết hạn)
+      notify((err as Error & { status?: number }).status === 409 ? (err as Error).message : 'Không thể kết nối tới máy chủ. Vui lòng kiểm tra backend đã chạy chưa.');
     }
   };
 

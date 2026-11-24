@@ -4,9 +4,9 @@ import type { ChuyenDi, DiaDiem, LichTrinhChuyenDi } from './types';
 
 // Only orders whose payment succeeded have a trip. The API already filters on this; the check is repeated here so
 // an unpaid / pending / failed order can never show up in "Chuyến đi của tôi", whatever the server sends.
-export const PAID_STATUSES: readonly string[] = ['upcoming', 'confirmed', 'completed', 'cancelled'];
+export const PAID_STATUSES: readonly string[] = ['upcoming', 'pending', 'confirmed', 'completed', 'rejected', 'cancelled'];
 
-export type TripPhase = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+export type TripPhase = 'pending' | 'upcoming' | 'ongoing' | 'completed' | 'rejected' | 'cancelled';
 
 /** Local date at 00:00 (a bare "YYYY-MM-DD" would be read as UTC and can land on the wrong day). */
 const localDate = (iso: string) => new Date(`${iso}T00:00:00`);
@@ -17,6 +17,9 @@ export const endMoment = (trip: ChuyenDi): Date => new Date(`${trip.ngayKetThuc}
 /** `status` is the order's current status (the live booking list is fresher than the trip snapshot). */
 export function tripPhase(trip: ChuyenDi, status: string, now = Date.now()): TripPhase {
   if (status === 'cancelled') return 'cancelled';
+  // Tour của người bán: chờ người bán xác nhận, hoặc đã bị từ chối
+  if (status === 'pending') return 'pending';
+  if (status === 'rejected') return 'rejected';
   if (status === 'completed' || endMoment(trip).getTime() < now) return 'completed';
   if (departureMoment(trip).getTime() <= now) return 'ongoing';
   return 'upcoming';

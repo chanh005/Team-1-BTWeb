@@ -343,6 +343,23 @@ const departureCode = (tour: Tour, date: string, kind: TransportKind, leg: Depar
  * Mỗi tuần 1-2 chuyến vào thứ Tư và/hoặc thứ Bảy (tuỳ mã tour), liên tục từ hôm nay đến hết tháng thứ 6 tính từ tháng hiện tại.
  */
 export const buildDepartures = (tour: Tour, today: Date = new Date()): Departure[] => {
+  // Tour của người bán: dùng đúng các ngày khởi hành họ nhập (số chỗ còn = tối đa − đã đặt), không tự sinh lịch
+  if (tour.sellerDepartures) {
+    return tour.sellerDepartures.map((sd) => {
+      const returnDate = addDays(sd.date, Math.max(tour.duration - 1, 0));
+      return {
+        id: `SD-${sd.id}`,
+        date: sd.date,
+        returnDate,
+        kind: 'local' as const,
+        departFrom: tour.departure,
+        maxSeats: sd.maxSeats,
+        availableSeats: Math.max(0, sd.maxSeats - sd.bookedSeats),
+        legs: localLegs(tour, sd.date, returnDate),
+        prices: { ...pricesFor(tour), adult: sd.price ?? tour.discountPrice ?? tour.price },
+      };
+    });
+  }
   const route = ROUTES[normalize(tour.destination)] ?? FALLBACK_ROUTE;
   const kind = kindOf(tour, route);
   const weekdays = pick(SCHEDULE_PATTERNS, hash(tour.id));

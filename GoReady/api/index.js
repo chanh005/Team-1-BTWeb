@@ -9,6 +9,7 @@ import imagesRouter from '../backend/src/routes/images.js';
 import chuyenDiRouter from '../backend/src/routes/chuyenDi.js';
 import articlesRouter from '../backend/src/routes/articles.js';
 import communityRouter from '../backend/src/routes/community.js';
+import sellerRouter, { sellerFilesRouter } from '../backend/src/routes/seller.js';
 
 const app = express();
 const pool = getPool();
@@ -46,6 +47,8 @@ const apiRouter = express.Router();
 // Images route: sets its own limit (5mb) for base64 photo uploads, mounted before global express.json()
 apiRouter.use('/images', imagesRouter(pool));
 
+apiRouter.use('/seller/files', sellerFilesRouter); // file lớn (10MB): trước bộ đọc JSON 2MB
+
 // JSON parser (2mb limit) for all other API endpoints
 apiRouter.use(express.json({ limit: '2mb' }));
 
@@ -56,6 +59,7 @@ apiRouter.use('/users', usersRouter);
 apiRouter.use('/chuyen-di', chuyenDiRouter);
 apiRouter.use('/community', communityRouter);
 apiRouter.use('/articles', articlesRouter);
+apiRouter.use('/seller', sellerRouter);
 
 // Health check endpoint
 apiRouter.get('/health', (_req, res) => res.json({ ok: true }));

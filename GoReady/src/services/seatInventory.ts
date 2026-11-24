@@ -142,16 +142,20 @@ const localRelease = (id: string): void => {
   writeInventory({ ...state, holds });
 };
 
+/** Ngày khởi hành thật của tour người bán (mã "SD-<id>"): số chỗ do server tính khi người bán xác nhận, không trừ ở trình duyệt. */
+const isSellerDeparture = (id: string): boolean => id.startsWith('SD-');
+
 const localCommit = (d: Departure, seats: number): boolean => {
   const state = readInventory();
   if (state.holds[d.id]?.holderId !== getClientId()) return false;
   if (seats > Math.max(0, d.availableSeats - (state.sold[d.id] ?? 0))) return false;
   const { [d.id]: _consumed, ...holds } = state.holds;
-  writeInventory({ sold: { ...state.sold, [d.id]: (state.sold[d.id] ?? 0) + seats }, holds });
+  writeInventory({ sold: isSellerDeparture(d.id) ? state.sold : { ...state.sold, [d.id]: (state.sold[d.id] ?? 0) + seats }, holds });
   return true;
 };
 
 const localReturn = (id: string, seats: number): void => {
+  if (isSellerDeparture(id)) return;
   const state = readInventory();
   const sold = state.sold[id];
   if (!sold) return;

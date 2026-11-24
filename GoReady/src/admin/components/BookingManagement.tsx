@@ -9,9 +9,11 @@ interface BookingManagementProps {
 }
 
 const STATUS_OPTIONS: { value: BookingStatus; label: string; badge: string }[] = [
+  { value: 'pending', label: 'Chờ xác nhận', badge: 'bg-amber-50 text-amber-600' },
   { value: 'upcoming', label: 'Sắp tới', badge: 'bg-amber-50 text-amber-600' },
   { value: 'confirmed', label: 'Đã xác nhận', badge: 'bg-primary-50 text-primary-700' },
   { value: 'completed', label: 'Hoàn thành', badge: 'bg-emerald-50 text-emerald-600' },
+  { value: 'rejected', label: 'Bị từ chối', badge: 'bg-red-50 text-red-500' },
   { value: 'cancelled', label: 'Đã huỷ', badge: 'bg-red-50 text-red-500' },
 ];
 

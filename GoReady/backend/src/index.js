@@ -9,6 +9,7 @@ import imagesRouter from './routes/images.js';
 import chuyenDiRouter from './routes/chuyenDi.js';
 import articlesRouter from './routes/articles.js';
 import communityRouter from './routes/community.js';
+import sellerRouter, { sellerFilesRouter } from './routes/seller.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -19,6 +20,8 @@ app.use(cors());
 // Before the global JSON parser below: uploads carry a photo (base64), so this route sets its own, larger body limit
 app.use('/api/images', imagesRouter(pool));
 
+app.use('/api/seller/files', sellerFilesRouter); // file lớn (10MB): trước bộ đọc JSON 2MB
+
 app.use(express.json({ limit: '2mb' })); // allow base64 avatar uploads
 
 app.use('/api/tours', toursRouter);
@@ -27,6 +30,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/chuyen-di', chuyenDiRouter);
 app.use('/api/community', communityRouter);
 app.use('/api/articles', articlesRouter);
+app.use('/api/seller', sellerRouter);
 
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
@@ -34,7 +38,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 // Errors forwarded by the route handlers: answer with JSON (the client shows `error`) instead of crashing
 app.use((err, _req, res, _next) => {
   console.error('[api]', err);
-  res.status(500).json({ error: err instanceof Error ? err.message : 'Server error' });
+  res.status(err.status || 500).json({ error: err instanceof Error ? err.message : 'Server error' });
 });
 
 await ensureSchema(pool);

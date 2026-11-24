@@ -21,9 +21,33 @@ function serialize(row) {
   return out;
 }
 
-export async function listTours(pool) {
-  const { rows } = await pool.query('SELECT * FROM tours ORDER BY name');
-  return rows.map(serialize);
+/** `publicOnly`: trang người mua chỉ nhận tour đã được duyệt (status = 'active'). Admin gọi không tham số để thấy tất cả. */
+export async function listTours(pool, { publicOnly = false } = {}) {
+  const { rows } = await pool.query(`SELECT * FROM tours ${publicOnly ? "WHERE status = 'active'" : ''} ORDER BY name`);
+  const tours = rows.map(serialize);
+  if (!publicOnly) return tours;
+
+  // Tour của người bán: kèm lịch khởi hành thật (ngày còn mở đặt). Người mua dùng nó thay cho lịch tự sinh.
+  // Số chỗ còn = tối đa - đã đặt; "đã đặt" chỉ tăng khi người bán xác nhận booking.
+  const sellerTourIds = tours.filter((t) => t.seller_id).map((t) => t.id);
+  if (sellerTourIds.length) {
+    const { rows: deps } = await pool.query(
+      `SELECT id, tour_id, to_char(departure_date, 'YYYY-MM-DD') AS date, price, max_seats, booked_seats
+       FROM tour_departures
+       WHERE tour_id = ANY($1)
+         AND departure_date >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date
+         AND (booking_deadline IS NULL OR booking_deadline >= (NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date)
+       ORDER BY departure_date, id`,
+      [sellerTourIds],
+    );
+    for (const t of tours) {
+      if (!t.seller_id) continue;
+      t.sellerDepartures = deps
+        .filter((d) => d.tour_id === t.id)
+        .map((d) => ({ id: d.id, date: d.date, price: d.price, maxSeats: d.max_seats, bookedSeats: d.booked_seats }));
+    }
+  }
+  return tours;
 }
 
 export async function createTour(pool, body) {

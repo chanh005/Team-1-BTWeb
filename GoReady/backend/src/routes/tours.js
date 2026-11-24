@@ -9,8 +9,8 @@ const pool = getPool();
 // (e.g. a duplicate id while importing from the Google Sheet) would crash the whole server.
 const wrap = (handler) => (req, res, next) => handler(req, res).catch(next);
 
-router.get('/', wrap(async (_req, res) => {
-  res.json(await listTours(pool));
+router.get('/', wrap(async (req, res) => {
+  res.json(await listTours(pool, { publicOnly: req.query.public === '1' }));
 }));
 
 router.post('/', wrap(async (req, res) => {

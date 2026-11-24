@@ -71,6 +71,43 @@ export interface SellerTourRow {
   booked_seats: number;
 }
 
+/** Booking của khách vào tour của người bán. `ongoing` là trạng thái suy ra (đã xác nhận và đang trong thời gian tour). */
+export interface SellerBooking {
+  id: string;
+  bookingCode: string;
+  tourId: string;
+  tour_name: string;
+  status: 'pending' | 'confirmed' | 'completed' | 'rejected' | 'cancelled';
+  ongoing: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  adults: number;
+  children: number;
+  infants: number;
+  totalPrice: number;
+  contactName: string;
+  contactPhone: string;
+  contactEmail: string;
+  note: string | null;
+  seller_note: string | null;
+  createdAt: string;
+  confirmed_at: string | null;
+  completed_at: string | null;
+  departure_id: number | null;
+  max_seats: number | null;
+  booked_seats: number | null;
+  remaining_seats: number | null;
+  can_complete: boolean;
+}
+
+export interface SellerBookingCounts {
+  pending: number;
+  confirmed: number;
+  ongoing: number;
+  completed: number;
+  closed: number;
+}
+
 /** Tour của người bán (Admin xem để duyệt). */
 export interface AdminSellerTour {
   id: string;
@@ -125,6 +162,11 @@ export const api = {
   sellerTourAction: (token: string, id: string, action: 'hide' | 'show' | 'submit') =>
     request<unknown>(`/seller/tours/${id}/${action}`, { method: 'POST', headers: bearer(token), body: '{}' }),
   sellerDeleteTour: (token: string, id: string) => request<void>(`/seller/tours/${id}`, { method: 'DELETE', headers: bearer(token) }),
+  sellerListBookings: (token: string, status?: string) =>
+    request<{ bookings: SellerBooking[]; counts: SellerBookingCounts }>(`/seller/bookings${status ? `?status=${status}` : ''}`, { headers: bearer(token) }),
+  sellerGetBooking: (token: string, id: string) => request<SellerBooking>(`/seller/bookings/${id}`, { headers: bearer(token) }),
+  sellerBookingAction: (token: string, id: string, action: 'confirm' | 'reject' | 'complete', sellerNote?: string) =>
+    request<SellerBooking>(`/seller/bookings/${id}/${action}`, { method: 'POST', headers: bearer(token), body: JSON.stringify({ seller_note: sellerNote }) }),
   adminListSellers: (token: string, status = 'pending') =>
     request<AdminSeller[]>(`/seller/admin/sellers?status=${status}`, { headers: bearer(token) }),
   adminReviewSeller: (token: string, id: string, decision: 'approve' | 'reject', reason?: string) =>

@@ -6,7 +6,7 @@ export const NAV_ITEMS: { path: string; label: string; soon?: boolean }[] = [
   { path: '/tong-quan', label: 'Tổng quan', soon: true },
   { path: '/tour-cua-toi', label: 'Tour của tôi' },
   { path: '/tour-moi', label: 'Đăng tour mới', soon: true },
-  { path: '/booking', label: 'Booking', soon: true },
+  { path: '/booking', label: 'Booking' },
   { path: '/lich-khoi-hanh', label: 'Lịch khởi hành', soon: true },
   { path: '/danh-gia', label: 'Đánh giá của khách', soon: true },
   { path: '/ho-so', label: 'Hồ sơ doanh nghiệp', soon: true },
@@ -15,12 +15,14 @@ export const NAV_ITEMS: { path: string; label: string; soon?: boolean }[] = [
 interface Props {
   path: string;
   seller: SellerProfile;
+  /** Số booking đang chờ xác nhận (hiện trên menu Booking). */
+  pendingBookings?: number;
   onLogout: () => void;
   children: React.ReactNode;
 }
 
 /** Khung Seller Center: thanh trên + menu bên trái. */
-const SellerShell: React.FC<Props> = ({ path, seller, onLogout, children }) => {
+const SellerShell: React.FC<Props> = ({ path, seller, pendingBookings = 0, onLogout, children }) => {
   const [menuOpen, setMenuOpen] = React.useState(false); // menu tài khoản
   const [navOpen, setNavOpen] = React.useState(false); // menu trái trên điện thoại
 
@@ -39,6 +41,9 @@ const SellerShell: React.FC<Props> = ({ path, seller, onLogout, children }) => {
           }`}
         >
           {it.label}
+          {it.path === '/booking' && pendingBookings > 0 && (
+            <span className="grid h-5 min-w-[1.25rem] place-items-center rounded-full bg-slate-900 px-1.5 text-[11px] font-bold text-white">{pendingBookings}</span>
+          )}
           {it.soon && <span className={`text-[10px] font-medium ${activePath === it.path ? 'text-white/80' : 'text-slate-400'}`}>Sắp có</span>}
         </a>
       ))}

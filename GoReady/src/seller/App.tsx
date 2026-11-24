@@ -7,6 +7,7 @@ import SellerProfileForm from './SellerProfileForm';
 import SellerStatus from './SellerStatus';
 import SellerShell, { NAV_ITEMS } from './SellerShell';
 import MyTours from './MyTours';
+import BookingManagement from './BookingManagement';
 import ComingSoon from './ComingSoon';
 
 function App() {
@@ -36,6 +37,19 @@ function App() {
     }
   }, [token, setToken]);
   React.useEffect(() => { void refresh(); }, [refresh]);
+
+  // Số booking chờ xác nhận cho huy hiệu trên menu: hỏi lại mỗi 30 giây và sau mỗi hành động
+  const [pendingBookings, setPendingBookings] = React.useState(0);
+  const approved = seller?.status === 'approved';
+  const refreshPending = React.useCallback(() => {
+    if (!token || !approved) return;
+    api.sellerListBookings(token).then((d) => setPendingBookings(d.counts.pending)).catch(() => {});
+  }, [token, approved]);
+  React.useEffect(() => {
+    refreshPending();
+    const id = window.setInterval(refreshPending, 30000);
+    return () => window.clearInterval(id);
+  }, [refreshPending]);
 
   const handleLoggedIn = (newToken: string) => {
     setToken(newToken);
@@ -76,12 +90,13 @@ function App() {
   const label = NAV_ITEMS.find((n) => n.path === path)?.label;
   let page: React.ReactNode;
   if (path === '/tour-cua-toi') page = <MyTours token={token} onUnauthorized={logout} />;
+  else if (path === '/booking') page = <BookingManagement token={token} onUnauthorized={logout} onChanged={refreshPending} />;
   else if (path === '/tour-moi') page = <ComingSoon title="Đăng tour mới" note="Form đăng tour (5 phần) đang được làm ở bước tiếp theo." />;
   else if (path.startsWith('/tour/')) page = <ComingSoon title="Sửa tour" note="Form sửa tour dùng chung với form Đăng tour mới, đang được làm ở bước tiếp theo." />;
   else if (label) page = <ComingSoon title={label} />;
   else page = <ComingSoon title="Không tìm thấy trang" note="Đường dẫn này không tồn tại trong Seller Center." />;
 
-  return <SellerShell path={path} seller={seller} onLogout={logout}>{page}</SellerShell>;
+  return <SellerShell path={path} seller={seller} pendingBookings={pendingBookings} onLogout={logout}>{page}</SellerShell>;
 }
 
 export default App;

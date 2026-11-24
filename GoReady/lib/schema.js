@@ -3,6 +3,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createTour } from './tours.js';
 import { ensureCommunitySchema } from './community/schema.js';
+import { runSellerMigration } from './migrations/001_seller_center.js';
+import { runSellerToursMigration } from './migrations/002_seller_tours.js';
+import { runSellerBookingsMigration } from './migrations/003_seller_bookings.js';
 
 // Bài viết cẩm nang/thông báo (Admin đăng). Chỉ thêm bảng và chỉ mục, không đụng bảng cũ.
 const ARTICLES_SQL = `
@@ -136,6 +139,9 @@ export async function ensureSchema(pool) {
   await pool.query(`ALTER TABLE tours ADD COLUMN IF NOT EXISTS keywords JSONB`);
   await ensureCommunitySchema(pool);
   await pool.query(ARTICLES_SQL); // bảng community_*, community_profiles, gopoint_ledger (idempotent)
+  await runSellerMigration(pool); // Seller Center: bảng sellers, seller_files
+  await runSellerToursMigration(pool); // Seller Center: tour của người bán (cột mới trên tours + 3 bảng phụ)
+  await runSellerBookingsMigration(pool); // Seller Center: cột mới của bookings (cần tour_departures nên chạy sau 002)
   ensured = true;
 }
 

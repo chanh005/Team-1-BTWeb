@@ -6,7 +6,8 @@ import TourManagement from './components/TourManagement';
 import BookingManagement from './components/BookingManagement';
 import UserManagement from './components/UserManagement';
 import ArticleManagement from './components/ArticleManagement';
-import { api } from '../api';
+import ReviewCenter from './components/ReviewCenter';
+import { ADMIN_EXPIRED_EVENT, api } from '../api';
 import { addSheetToursIfMissing } from './importSheetTours';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { usePolledResource } from '../hooks/usePolledResource';
@@ -14,6 +15,8 @@ import type { BookingStatus, Tour } from '../types';
 
 function App() {
   const [adminEmail, setAdminEmail] = useLocalStorage<string>('goready_admin_email', '');
+  // Token Seller Center (ký ở server) để gọi API duyệt hồ sơ / tour. Rỗng nếu đăng nhập từ phiên cũ.
+  const [adminToken, setAdminToken] = useLocalStorage<string>('goready_admin_token', '');
   const [page, setPage] = React.useState<AdminPage>('dashboard');
 
   const { data: toursData, refresh: refreshTours } = usePolledResource(api.getTours);
@@ -52,12 +55,31 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminUser, adminEmail, usersData]);
 
+  // Phiên Admin cũ (đăng nhập trước khi có token) hoặc token hết hạn: đăng xuất để đăng nhập lại, vì các thao tác ghi cần token
+  React.useEffect(() => {
+    if (adminEmail && !adminToken) {
+      setAdminEmail('');
+      return;
+    }
+    const onExpired = () => { setAdminEmail(''); setAdminToken(''); };
+    window.addEventListener(ADMIN_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(ADMIN_EXPIRED_EVENT, onExpired);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminEmail, adminToken]);
+
   const handleAdminLogin = async (email: string, password: string) => {
     const account = await api.login(email, password);
     if (account.role !== 'admin') {
       throw new Error('not_admin');
     }
+    // Token cần cho mọi thao tác ghi (tour, người dùng, duyệt hồ sơ): không lấy được thì không cho vào trang Admin
+    const { token } = await api.sellerLogin(email, password);
+    setAdminToken(token);
     setAdminEmail(account.email);
+  };
+  const handleAdminLogout = () => {
+    setAdminEmail('');
+    setAdminToken('');
   };
 
   if (!adminEmail) {
@@ -102,7 +124,7 @@ function App() {
   };
 
   return (
-    <AdminLayout page={page} onNavigate={setPage} adminName={adminUser.name} onLogout={() => setAdminEmail('')}>
+    <AdminLayout page={page} onNavigate={setPage} adminName={adminUser.name} onLogout={handleAdminLogout}>
       {page === 'dashboard' && <Dashboard tours={tours} bookings={bookings} users={users} />}
       {page === 'tours' && (
         <TourManagement tours={tours} onAdd={handleAddTour} onUpdate={handleUpdateTour} onDelete={handleDeleteTour} onToggleHidden={handleToggleHidden} onSetFeatured={handleSetFeatured}
@@ -110,7 +132,8 @@ function App() {
           onDismissNotice={() => setSheetNotice(null)}
         />
       )}
-      {page === 'articles' && <ArticleManagement actor={{ id: adminUser.id, email: adminUser.email }} />}
+      {page === 'reviews' && <ReviewCenter token={adminToken} onRelogin={handleAdminLogout} />}
+      {page === 'articles' &&<ArticleManagement actor={{ id: adminUser.id, email: adminUser.email }} />}
       {page === 'bookings' && <BookingManagement bookings={bookings} tours={tours} onChangeStatus={handleChangeBookingStatus} />}
       {page === 'users' && <UserManagement users={users} onToggleStatus={handleToggleUserStatus} />}
     </AdminLayout>

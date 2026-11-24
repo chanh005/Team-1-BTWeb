@@ -9,6 +9,8 @@ interface DashboardProps {
 }
 
 const STATUS_LABEL: Record<Booking['status'], string> = {
+  pending: 'Chờ xác nhận',
+  rejected: 'Bị từ chối',
   confirmed: 'Đã xác nhận',
   upcoming: 'Sắp tới',
   completed: 'Hoàn thành',
@@ -16,7 +18,7 @@ const STATUS_LABEL: Record<Booking['status'], string> = {
 };
 
 const Dashboard: React.FC<DashboardProps> = ({ tours, bookings, users }) => {
-  const revenue = bookings.filter((b) => b.status !== 'cancelled').reduce((sum, b) => sum + b.totalPrice, 0);
+  const revenue = bookings.filter((b) => b.status !== 'cancelled' && b.status !== 'rejected').reduce((sum, b) => sum + b.totalPrice, 0);
   const activeUsers = users.filter((u) => u.status === 'active').length;
   const topTours = [...tours].sort((a, b) => b.bookingCount - a.bookingCount).slice(0, 5);
   const recentBookings = [...bookings].sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1)).slice(0, 5);

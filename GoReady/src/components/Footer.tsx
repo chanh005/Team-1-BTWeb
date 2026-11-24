@@ -3,7 +3,7 @@ import { COMMUNITY_HASH } from '../config/communityRoute';
 
 const Footer: React.FC = () => (
   <footer className="mt-16 border-t border-slate-100 bg-white">
-    <div className="container-px mx-auto grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="container-px mx-auto grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-5">
       <div>
         <div className="flex items-center gap-2">
           <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-white font-bold">G</span>
@@ -37,6 +37,21 @@ const Footer: React.FC = () => (
           <li>Chính sách</li>
           <li>Chính sách hoàn hủy</li>
           <li>Điều khoản dịch vụ</li>
+        </ul>
+      </div>
+      <div>
+        <h4 className="mb-3 text-sm font-bold text-slate-800">Dành cho doanh nghiệp</h4>
+        <ul className="space-y-2 text-sm text-slate-500">
+          <li>
+            <a href="/seller/#/dang-ky" className="hover:text-primary transition-colors">
+              Đăng ký bán tour
+            </a>
+          </li>
+          <li>
+            <a href="/seller/" className="hover:text-primary transition-colors">
+              Đăng nhập Seller Center
+            </a>
+          </li>
         </ul>
       </div>
       <div>

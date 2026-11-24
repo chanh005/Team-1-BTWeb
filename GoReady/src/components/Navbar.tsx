@@ -14,7 +14,8 @@ interface NavbarProps {
   savedCount: number;
   compareCount: number;
   onOpenSaved: () => void;
-  onOpenAi: () => void;
+  /** Không còn nút nào trên header gọi hàm này (đã thay bằng "Seller Center"); giữ prop để App và tính năng AI Lập Lịch Trình không phải đổi. */
+  onOpenAi?: () => void;
   userName: string | null;
   userRole: 'user' | 'admin' | null;
   avatarUrl?: string | null;
@@ -39,7 +40,6 @@ const Navbar: React.FC<NavbarProps> = ({
   savedCount,
   compareCount,
   onOpenSaved,
-  onOpenAi,
   userName,
   userRole,
   avatarUrl,
@@ -126,12 +126,13 @@ const Navbar: React.FC<NavbarProps> = ({
               </span>
             )}
           </button>
-          <button
-            onClick={onOpenAi}
+          {/* Lối vào Seller Center: trang riêng cùng bản build, chuyển trang giống link "Vào trang Admin" (thẻ <a>) */}
+          <a
+            href="/seller/"
             className="hidden sm:flex items-center gap-2 rounded-full border border-accent-dark/40 bg-accent/20 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-accent/40 transition-colors"
           >
-            <span aria-hidden>✨</span> AI Lập Lịch Trình
-          </button>
+            <span aria-hidden>🏪</span> Seller Center
+          </a>
 
           {userName ? (
             <div className="flex items-center gap-2 sm:gap-3">
@@ -279,9 +280,9 @@ const Navbar: React.FC<NavbarProps> = ({
             {link.mobileLabel}
           </button>
         ))}
-        <button onClick={onOpenAi} className="flex-1 rounded-full px-3 py-1.5 text-center text-primary">
-          ✨ AI
-        </button>
+        <a href="/seller/" className="flex-1 rounded-full px-3 py-1.5 text-center leading-tight text-primary">
+          Seller Center
+        </a>
       </nav>
     </header>
   );

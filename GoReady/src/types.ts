@@ -92,6 +92,10 @@ export interface Tour {
   hidden?: boolean; // admin-only: ẩn tour khỏi trang người dùng
   isFeatured?: boolean; // admin-only: đánh dấu "Tour nổi bật" trên trang chủ
 
+  // Tour của người bán (Seller Center): có seller_id và lịch khởi hành thật (thay cho lịch tự sinh)
+  seller_id?: string | null;
+  sellerDepartures?: SellerDeparture[];
+
   // Optional fields, populated for tours loaded from the "Gợi ý chuyến đi" sheet
   code?: string; // sheet code, e.g. "SP01"
   durationLabel?: string; // raw duration text, e.g. "1 buổi (17:00 - 21:00)"
@@ -178,7 +182,16 @@ export interface AddOnService {
 }
 
 export type PaymentMethod = 'vietqr' | 'momo' | 'vnpay' | 'card';
-export type BookingStatus = 'confirmed' | 'upcoming' | 'completed' | 'cancelled';
+export type BookingStatus = 'pending' | 'confirmed' | 'upcoming' | 'completed' | 'rejected' | 'cancelled';
+
+/** Một ngày khởi hành thật do người bán nhập (bảng tour_departures). */
+export interface SellerDeparture {
+  id: number;
+  date: string; // YYYY-MM-DD
+  price: number | null; // giá riêng, null = dùng giá chung của tour
+  maxSeats: number;
+  bookedSeats: number; // chỉ tăng khi người bán xác nhận booking
+}
 
 export interface Booking {
   id: string;
@@ -203,6 +216,8 @@ export interface Booking {
   hotelName: string;
   pickupTime: string;
   pickupLocation: string;
+  /** Ghi chú / lý do từ chối của người bán (tour của Seller Center). */
+  seller_note?: string | null;
 }
 
 export type ChecklistCategory = 'Giấy tờ tùy thân' | 'Quần áo & Giày dép' | 'Thuốc men & Y tế' | 'Thiết bị điện tử & Tiền tệ';
@@ -253,7 +268,7 @@ export interface AccountUser {
   joinedAt: string; // ISO date
   totalBookings: number;
   status: 'active' | 'locked';
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'seller';
   avatar?: string | null;
 }
 

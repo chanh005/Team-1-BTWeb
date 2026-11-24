@@ -11,9 +11,9 @@ function redirectAdminTrailingSlash(): Plugin {
     name: 'redirect-admin-trailing-slash',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        if (req.url === '/admin') {
+        if (req.url === '/admin' || req.url === '/seller') {
           res.statusCode = 302;
-          res.setHeader('Location', '/admin/');
+          res.setHeader('Location', `${req.url}/`);
           res.end();
           return;
         }
@@ -42,6 +42,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         admin: resolve(__dirname, 'admin/index.html'),
+        seller: resolve(__dirname, 'seller/index.html'),
       },
     },
   },

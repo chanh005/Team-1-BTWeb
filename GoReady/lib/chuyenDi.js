@@ -6,7 +6,8 @@ import { createHash, randomUUID } from 'node:crypto';
 // for an order whose payment succeeded; the checkout only creates a booking once payment is done, so any status in
 // PAID_STATUSES qualifies, while unpaid / pending / failed orders never get a trip and are never listed.
 
-export const PAID_STATUSES = ['upcoming', 'confirmed', 'completed', 'cancelled'];
+// 'pending' / 'rejected': booking của tour người bán đang chờ xác nhận hoặc bị từ chối — vẫn hiện ở "Chuyến đi của tôi"
+export const PAID_STATUSES = ['upcoming', 'pending', 'confirmed', 'completed', 'rejected', 'cancelled'];
 
 const CREATE_SQL = `
   CREATE TABLE IF NOT EXISTS dia_diem (

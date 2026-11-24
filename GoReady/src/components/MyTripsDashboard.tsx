@@ -109,8 +109,8 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
     return { trip, phase: tripPhase(trip, status, now) };
   });
   const byDeparture = (a: { trip: ChuyenDi }, b: { trip: ChuyenDi }) => departureMoment(a.trip).getTime() - departureMoment(b.trip).getTime();
-  const activeUpcoming = entries.filter((e) => e.phase === 'upcoming' || e.phase === 'ongoing').sort(byDeparture);
-  const cancelledUpcoming = entries.filter((e) => e.phase === 'cancelled' && new Date(`${e.trip.ngayKetThuc}T23:59:59`).getTime() >= now).sort(byDeparture);
+  const activeUpcoming = entries.filter((e) => e.phase === 'upcoming' || e.phase === 'ongoing' || e.phase === 'pending').sort(byDeparture);
+  const cancelledUpcoming = entries.filter((e) => (e.phase === 'cancelled' || e.phase === 'rejected') && new Date(`${e.trip.ngayKetThuc}T23:59:59`).getTime() >= now).sort(byDeparture);
   const upcoming = [...activeUpcoming, ...cancelledUpcoming];
   const past = entries.filter((e) => e.phase === 'completed').sort((a, b) => byDeparture(b, a));
 
@@ -148,6 +148,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
         <TripDetail
           trip={selected.trip}
           phase={selected.phase}
+          sellerNote={bookings.find((b) => b.id === selected.trip.maDon)?.seller_note ?? undefined}
           coverFallback={coverFor(selected.trip)}
           tourHighlights={highlightsFor(selected.trip)}
           onBack={() => setSelectedTripId(null)}
@@ -204,7 +205,7 @@ const MyTripsDashboard: React.FC<MyTripsDashboardProps> = ({ bookings, tours, ch
           ) : (
             <div className="grid gap-5 lg:grid-cols-2">
               {upcoming.map(({ trip, phase }) => (
-                <TripCard key={trip.maChuyenDi} trip={trip} phase={phase} coverFallback={coverFor(trip)} onOpen={openTrip} onRequestCancel={requestCancel} />
+                <TripCard key={trip.maChuyenDi} trip={trip} phase={phase} sellerNote={bookings.find((b) => b.id === trip.maDon)?.seller_note ?? undefined} coverFallback={coverFor(trip)} onOpen={openTrip} onRequestCancel={requestCancel} />
               ))}
             </div>
           ))}

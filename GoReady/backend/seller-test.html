@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<title>Thử API người bán</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 820px; margin: 24px auto; padding: 0 16px; background: #F8FAFC; color: #1E293B; }
+  button { padding: 8px 16px; margin: 4px 4px 4px 0; border: 0; border-radius: 999px; background: #3D72BB; color: #fff; cursor: pointer; font-size: 14px; }
+  button.gray { background: #64748B; }
+  h2 { margin: 20px 0 4px; font-size: 16px; }
+  p { margin: 2px 0 6px; color: #64748B; font-size: 14px; }
+  input { padding: 6px 10px; border: 1px solid #CBD5E1; border-radius: 8px; width: 260px; }
+  pre { background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; padding: 12px; white-space: pre-wrap; min-height: 80px; }
+  .ok { color: #15803D; font-weight: 600; } .bad { color: #B91C1C; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Thử API người bán</h1>
+<p>Cần chạy server trước (<b>npm run dev</b> trong thư mục GoReady/backend). Bấm lần lượt từ bước 1 đến bước 7.</p>
+
+<h2>Người bán</h2>
+<button onclick="registerBad()">0. Đăng ký thiếu dữ liệu (phải báo lỗi từng ô)</button><br>
+<button onclick="registerOk()">1. Đăng ký hợp lệ (dữ liệu mẫu)</button>
+<button onclick="registerOk(true)" class="gray">1b. Đăng ký lại y hệt (phải báo trùng)</button><br>
+<button onclick="meSeller()">2. Xem hồ sơ của tôi</button>
+<button onclick="meNoToken()" class="gray">2b. Xem hồ sơ khi không có token (phải 401)</button>
+
+<h2>Admin</h2>
+<button onclick="adminList()">3. Admin đăng nhập + xem hồ sơ chờ duyệt</button><br>
+<input id="reason" value="Ảnh giấy phép không rõ, vui lòng tải lại">
+<button onclick="reject()">4. Từ chối hồ sơ vừa đăng ký</button>
+<button onclick="reject('')" class="gray">4b. Từ chối không nhập lý do (phải báo lỗi)</button>
+
+<h2>Người bán sửa lại</h2>
+<button onclick="meSeller()">5. Xem hồ sơ (phải thấy rejected + lý do)</button>
+<button onclick="resubmit()">6. Sửa và gửi lại (về pending)</button>
+
+<h2>Admin duyệt</h2>
+<button onclick="approve()">7. Duyệt hồ sơ</button>
+<button onclick="meSeller()">Xem lại hồ sơ (phải thấy approved)</button>
+
+
+<h2>Tour của người bán (cần làm xong bước 1 và bước 7: hồ sơ đã được duyệt)</h2>
+<button onclick="tourDraft()">8. Tạo tour nháp rỗng</button>
+<button onclick="tourSubmit()">9. Gửi duyệt khi chưa đủ (phải 422, lỗi từng trường)</button><br>
+<button onclick="tourFill()">10. Điền đủ thông tin</button>
+<button onclick="tourSubmit()">11. Gửi duyệt (phải thành pending_review)</button><br>
+<button onclick="tourAdminList()">12. Admin xem tour chờ duyệt</button>
+<input id="treason" value="Lịch trình chưa rõ" style="width:200px">
+<button onclick="tourReview('reject')">13a. Từ chối tour</button>
+<button onclick="tourReview('approve')">13b. Duyệt tour</button><br>
+<button onclick="tourVis('hide')">14. Ẩn tour</button>
+<button onclick="tourVis('show')">15. Hiện lại tour</button>
+<button onclick="tourPrice()">16. Sửa giá khi đang bán (phải quay lại pending_review)</button><br>
+<button onclick="publicList()">17. Trang người mua có thấy tour này không?</button>
+<button onclick="tourDelete()">18. Xóa tour (chỉ xóa được khi là nháp)</button>
+<button onclick="myTours()">Danh sách tour của tôi</button><br>
+<button onclick="otherSeller()">19. Người bán khác xem tour này (phải 404)</button>
+
+
+<h2>Booking (làm sau khi tour đã "Đang bán": xong bước 13b)</h2>
+<p>Bấm 20 để đóng vai khách đặt tour. Mỗi lần bấm tạo một booking mới.</p>
+<button onclick="bkSeats()">19b. Xem số chỗ của ngày khởi hành (trước khi đặt)</button><br>
+<button onclick="bkCreate(2, 1)">20. Khách đặt tour: 2 người lớn + 1 trẻ em (phải thành pending)</button>
+<button onclick="bkCreate(999, 0)" class="gray">20b. Khách đặt 999 người (phải báo không đủ chỗ)</button><br>
+<button onclick="bkList()">21. Seller xem danh sách booking</button>
+<button onclick="bkGet()">22. Seller xem chi tiết booking vừa đặt</button><br>
+<button onclick="bkAction('confirm')">23. Xác nhận booking (chỗ phải giảm 3)</button>
+<button onclick="bkAction('confirm')" class="gray">23b. Bấm xác nhận lần nữa (phải báo lỗi, chỗ không giảm thêm)</button><br>
+<button onclick="bkAction('reject', '')" class="gray">24a. Từ chối không lý do (phải báo lỗi)</button>
+<button onclick="bkAction('reject', 'Hết chỗ theo kế hoạch')">24b. Từ chối có lý do (chỗ không đổi)</button><br>
+<button onclick="bkAction('complete')">25. Đánh dấu hoàn thành sớm (phải báo lỗi: chưa qua ngày kết thúc)</button>
+<button onclick="bkBuyerCancel()">26. Khách hủy booking (nếu đã xác nhận, chỗ phải được trả lại)</button><br>
+<button onclick="bkBuyerView()">27. Phía khách: xem booking này (phải thấy status + seller_note)</button>
+<button onclick="bkOtherSeller()" class="gray">28. Người bán khác xem booking này (phải 404)</button>
+
+<h2>Tổng quan (Dashboard)</h2>
+<button onclick="dash()">29. Xem dữ liệu tổng quan</button>
+<button onclick="dashCheck()" class="gray">29b. Đối chiếu với danh sách thật (tự so sánh)</button>
+
+<h2>Kết quả</h2>
+<pre id="out">Chưa có gì.</pre>
+
+<script>
+const API = 'http://localhost:4000/api/seller';
+const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==';
+let sellerToken = '', adminToken = '', sellerId = '', last = null;
+const out = document.getElementById('out');
+
+async function call(method, path, body, token) {
+  const res = await fetch(API + path, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).catch(() => null);
+  if (!res) { show(0, { error: 'Không nối được server. Đã chạy npm run dev chưa?' }); return null; }
+  const data = await res.json().catch(() => ({}));
+  show(res.status, data);
+  return { status: res.status, data };
+}
+function show(status, data) {
+  out.innerHTML = '<span class="' + (status >= 200 && status < 300 ? 'ok' : 'bad') + '">Mã trả về: ' + status + '</span>\n' +
+    JSON.stringify(data, null, 2).replace(/</g, '&lt;');
+}
+async function upload(kind) {
+  const r = await fetch(API + '/files', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind, dataUrl: PNG }) });
+  return (await r.json()).url;
+}
+async function sample() {
+  const n = Date.now().toString().slice(-10);
+  return {
+    email: 'thu' + n + '@example.com', phone: '0912345678', password: 'matkhau123', password_confirm: 'matkhau123',
+    business_name: 'Công ty Thử ' + n, tax_code: n, business_type: 'domestic_travel', legal_representative: 'Nguyễn Văn A',
+    address: '1 Lê Lợi, Quận 1, TP.HCM', hotline: '19001234', website: 'https://example.com',
+    logo_url: await upload('logo'), business_reg_file: await upload('business_reg'),
+    travel_license_number: 'GP-' + n, travel_license_issued_at: '2024-01-15', travel_license_file: await upload('travel_license'),
+  };
+}
+
+async function registerBad() { await call('POST', '/register', {}); }
+async function registerOk(again) {
+  if (again && !last) return alert('Bấm bước 1 trước.');
+  const r = await call('POST', '/register', again ? last : (last = await sample()));
+  if (r && r.status === 201) { sellerToken = r.data.token; sellerId = r.data.seller.id; }
+}
+async function meSeller() { await call('GET', '/me', undefined, sellerToken); }
+async function meNoToken() { await call('GET', '/me'); }
+async function adminLogin() {
+  const r = await call('POST', '/login', { email: 'admin@goready.vn', password: 'GoReady@2025!' });
+  if (r && r.status === 200) adminToken = r.data.token;
+  return adminToken;
+}
+async function adminList() {
+  if (await adminLogin()) await call('GET', '/admin/sellers?status=pending', undefined, adminToken);
+}
+async function reject(r) {
+  if (!sellerId) return alert('Bấm bước 1 trước.');
+  if (!adminToken) await adminLogin();
+  await call('POST', '/admin/sellers/' + sellerId + '/reject', { reason: r === undefined ? document.getElementById('reason').value : r }, adminToken);
+}
+async function approve() {
+  if (!sellerId) return alert('Bấm bước 1 trước.');
+  if (!adminToken) await adminLogin();
+  await call('POST', '/admin/sellers/' + sellerId + '/approve', {}, adminToken);
+}
+async function resubmit() {
+  if (!last) return alert('Bấm bước 1 trước.');
+  await call('PUT', '/me', { ...last, address: last.address + ' (đã sửa)' }, sellerToken);
+}
+
+let tourId = '';
+async function tourDraft() { const r = await call('POST', '/tours', {}, sellerToken); if (r && r.status === 201) tourId = r.data.id; }
+async function tourSubmit() { if (!tourId) return alert('Bấm bước 8 trước.'); await call('POST', '/tours/' + tourId + '/submit', {}, sellerToken); }
+async function uploadTour() {
+  const r = await fetch(API + '/files', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kind: 'tour_image', dataUrl: PNG }) });
+  return (await r.json()).url;
+}
+async function tourFill() {
+  if (!tourId) return alert('Bấm bước 8 trước.');
+  const cover = await uploadTour();
+  const d = new Date(); d.setDate(d.getDate() + 30);
+  const date = d.toISOString().slice(0, 10);
+  await call('PUT', '/tours/' + tourId, {
+    name: 'Tour thử Đà Lạt 3 ngày', destination: 'Đà Lạt', country: 'Việt Nam', region: 'Việt Nam', departure: 'TP. Hồ Chí Minh',
+    transport: 'Xe giường nằm', hotelStars: 4, duration: 3, nights: 2, groupSizeTags: ['Cặp đôi', 'Gia đình'],
+    shortDescription: 'Tour thử nghiệm', coverImage: cover, images: [cover],
+    itinerary: [1, 2, 3].map((n) => ({ title: 'Ngày ' + n, description: 'Hoạt động ngày ' + n, has_breakfast: n > 1, has_lunch: true, has_dinner: n < 3 })),
+    price: 3500000, childPrice: 2500000, departures: [{ departure_date: date, max_seats: 20, booking_deadline: date }],
+    includes: ['Xe đưa đón', 'Khách sạn'], excludes: ['Chi phí cá nhân'],
+    cancellationPolicy: 'Hoàn 100% nếu hủy trước 7 ngày', child_policy: 'Trẻ dưới 5 tuổi miễn phí', notes: 'Mang theo CCCD',
+  }, sellerToken);
+}
+async function tourAdminList() { if (!adminToken) await adminLogin(); await call('GET', '/admin/tours?status=pending_review', undefined, adminToken); }
+async function tourReview(dec) {
+  if (!tourId) return alert('Bấm bước 8 trước.');
+  if (!adminToken) await adminLogin();
+  await call('POST', '/admin/tours/' + tourId + '/' + dec, { reason: document.getElementById('treason').value }, adminToken);
+}
+async function tourVis(a) { await call('POST', '/tours/' + tourId + '/' + a, {}, sellerToken); }
+async function tourPrice() { await call('PUT', '/tours/' + tourId, { price: 3900000 }, sellerToken); }
+async function tourDelete() { const r = await call('DELETE', '/tours/' + tourId, undefined, sellerToken); if (r && r.status === 204) show(204, { ok: 'Đã xóa tour nháp' }); }
+async function myTours() { await call('GET', '/tours', undefined, sellerToken); }
+async function publicList() {
+  const res = await fetch('http://localhost:4000/api/tours?public=1');
+  const list = await res.json();
+  const found = list.find((t) => t.id === tourId);
+  show(res.status, { tongSoTourNguoiMuaThay: list.length, tourNayCoTrongDanhSach: !!found, status: found ? found.status : null });
+}
+async function otherSeller() {
+  const body = await sample();
+  const r = await fetch(API + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const reg = await r.json();
+  if (!adminToken) await adminLogin();
+  await fetch(API + '/admin/sellers/' + reg.seller.id + '/approve', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: '{}' });
+  await call('GET', '/tours/' + tourId, undefined, reg.token);
+}
+
+let bookingId = '';
+const ROOT = 'http://localhost:4000/api';
+async function bkDepId() {
+  const r = await fetch(API + '/tours/' + tourId, { headers: { Authorization: 'Bearer ' + sellerToken } });
+  const t = await r.json();
+  return t.departures && t.departures[0] ? t.departures[0] : null;
+}
+async function bkSeats() {
+  if (!tourId) return alert('Cần có tour (bước 8 đến 13b).');
+  const d = await bkDepId();
+  show(200, d ? { ngayKhoiHanh: d.departure_date, toiDa: d.max_seats, daDat: d.booked_seats, conLai: d.max_seats - d.booked_seats } : { error: 'Tour chưa có ngày khởi hành' });
+}
+async function bkCreate(adults, children) {
+  if (!tourId) return alert('Cần có tour đang bán (bước 8 đến 13b).');
+  const d = await bkDepId();
+  if (!d) return alert('Tour chưa có ngày khởi hành.');
+  const body = {
+    id: 'booking-test-' + Date.now(), bookingCode: 'GR-T' + String(Date.now()).slice(-5), tourId, departureDate: '2000-01-01',
+    departureCode: 'SD-' + d.id, adults, children, infants: 0, addOns: [], contactName: 'Khách Thử', contactPhone: '0987654321',
+    contactEmail: 'khach.thu@example.com', note: 'Ăn chay', totalPrice: 3500000 * adults, paymentMethod: 'momo', status: 'upcoming',
+    createdAt: new Date().toISOString(), guideName: 'HDV', guidePhone: '0900000000', hotelName: 'KS', pickupTime: '06:30', pickupLocation: 'Điểm đón',
+  };
+  const res = await fetch(ROOT + '/bookings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json().catch(() => ({}));
+  show(res.status, res.ok ? { status: data.status, departureDate: data.departureDate, departure_id: data.departure_id, ghiChu: 'status phải là pending, ngày phải là ngày khởi hành thật (không phải 2000-01-01)' } : data);
+  if (res.ok) bookingId = data.id;
+}
+async function bkList() { await call('GET', '/bookings', undefined, sellerToken); }
+async function bkGet() { if (!bookingId) return alert('Bấm bước 20 trước.'); await call('GET', '/bookings/' + bookingId, undefined, sellerToken); }
+async function bkAction(a, note) {
+  if (!bookingId) return alert('Bấm bước 20 trước.');
+  await call('POST', '/bookings/' + bookingId + '/' + a, note === undefined ? {} : { seller_note: note }, sellerToken);
+}
+async function bkBuyerCancel() {
+  if (!bookingId) return alert('Bấm bước 20 trước.');
+  const res = await fetch(ROOT + '/bookings/' + bookingId + '/status', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: 'cancelled' }) });
+  show(res.status, await res.json().catch(() => ({})));
+}
+async function bkBuyerView() {
+  const res = await fetch(ROOT + '/bookings');
+  const list = await res.json();
+  const b = list.find((x) => x.id === bookingId);
+  show(res.status, b ? { id: b.id, status: b.status, seller_note: b.seller_note } : { error: 'Không thấy booking' });
+}
+async function bkOtherSeller() {
+  const body = await sample();
+  const r = await fetch(API + '/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const reg = await r.json();
+  if (!adminToken) await adminLogin();
+  await fetch(API + '/admin/sellers/' + reg.seller.id + '/approve', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: '{}' });
+  await call('GET', '/bookings/' + bookingId, undefined, reg.token);
+}
+async function dash() { await call('GET', '/dashboard', undefined, sellerToken); }
+async function dashCheck() {
+  const [d, b, t] = await Promise.all(['/dashboard', '/bookings', '/tours'].map((p) => fetch(API + p, { headers: { Authorization: 'Bearer ' + sellerToken } }).then((r) => r.json())));
+  const rows = [
+    ['Booking chờ xác nhận', d.counts.pending_bookings, b.counts.pending],
+    ['Tour đang bán', d.counts.active_tours, t.counts.active],
+    ['Tour chờ duyệt', d.counts.pending_review_tours, t.counts.pending_review],
+    ['Booking đã xác nhận, đi trong 7 ngày tới (theo tab Đã xác nhận + Đang diễn ra)', d.counts.departing_soon_bookings, '(tự đếm tay: xem ngày đi)'],
+  ].map(([ten, dashboard, danhSach]) => ({ ten, dashboard, danhSach, khop: typeof danhSach === 'number' ? dashboard === danhSach : '—' }));
+  show(200, { doiChieu: rows, ghiChu: 'Cột khop phải là true. Dòng cuối không có danh sách để so, hãy đếm bằng tay.' });
+}
+</script>
+</body>
+</html>

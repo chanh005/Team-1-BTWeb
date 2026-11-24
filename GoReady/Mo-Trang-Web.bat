@@ -34,6 +34,7 @@ echo ============================================
 echo   GoReady da san sang!
 echo   - Trang nguoi dung: http://localhost:5183/
 echo   - Trang quan tri  : http://localhost:5183/admin/
+echo   - Trang nguoi ban : http://localhost:5183/seller/
 echo.
 echo   Luu y: dung dong 2 cua so "GoReady Backend"
 echo   va "GoReady Frontend" - dong cua so nao thi

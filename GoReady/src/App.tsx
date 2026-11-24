@@ -434,8 +434,20 @@ function App() {
     try {
       const account = await api.login(email, password);
       setCurrentUserEmail(account.email);
-      setCurrentUserRole(account.role ?? 'user');
+      setCurrentUserRole(account.role === 'admin' ? 'admin' : 'user');
       refreshAccounts();
+      if (account.role === 'seller') {
+        // Tài khoản người bán: lấy phiên Seller Center bằng chính email/mật khẩu vừa nhập rồi chuyển thẳng vào Seller Center
+        // (trang đó tự đưa tới Tổng quan, hoặc trang Trạng thái hồ sơ nếu chưa được duyệt). Không lấy được thì ở lại như cũ.
+        try {
+          const { token } = await api.sellerLogin(email, password);
+          window.localStorage.setItem('goready_seller_token', JSON.stringify(token));
+          window.location.href = '/seller/';
+          return;
+        } catch {
+          /* ở lại trang người mua */
+        }
+      }
       if (account.role === 'admin') {
         notify(`Đăng nhập Admin thành công! Chào mừng, ${account.name} 👑`);
       } else {
@@ -452,7 +464,7 @@ function App() {
     try {
       const account = await api.register(name, email, password);
       setCurrentUserEmail(account.email);
-      setCurrentUserRole(account.role ?? 'user');
+      setCurrentUserRole(account.role === 'admin' ? 'admin' : 'user');
       refreshAccounts();
       notify(`Đăng ký thành công! Chào mừng bạn, ${account.name} 🎉`);
       setShowLogin(false);

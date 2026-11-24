@@ -268,7 +268,7 @@ export interface AccountUser {
   joinedAt: string; // ISO date
   totalBookings: number;
   status: 'active' | 'locked';
-  role: 'user' | 'admin';
+  role: 'user' | 'admin' | 'seller';
   avatar?: string | null;
 }
 

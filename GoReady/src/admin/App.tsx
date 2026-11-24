@@ -7,7 +7,7 @@ import BookingManagement from './components/BookingManagement';
 import UserManagement from './components/UserManagement';
 import ArticleManagement from './components/ArticleManagement';
 import ReviewCenter from './components/ReviewCenter';
-import { api } from '../api';
+import { ADMIN_EXPIRED_EVENT, api } from '../api';
 import { addSheetToursIfMissing } from './importSheetTours';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { usePolledResource } from '../hooks/usePolledResource';
@@ -55,13 +55,26 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminUser, adminEmail, usersData]);
 
+  // Phiên Admin cũ (đăng nhập trước khi có token) hoặc token hết hạn: đăng xuất để đăng nhập lại, vì các thao tác ghi cần token
+  React.useEffect(() => {
+    if (adminEmail && !adminToken) {
+      setAdminEmail('');
+      return;
+    }
+    const onExpired = () => { setAdminEmail(''); setAdminToken(''); };
+    window.addEventListener(ADMIN_EXPIRED_EVENT, onExpired);
+    return () => window.removeEventListener(ADMIN_EXPIRED_EVENT, onExpired);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminEmail, adminToken]);
+
   const handleAdminLogin = async (email: string, password: string) => {
     const account = await api.login(email, password);
     if (account.role !== 'admin') {
       throw new Error('not_admin');
     }
-    // Không để lỗi lấy token chặn việc vào trang Admin; trang "Duyệt hồ sơ" sẽ nhắc đăng nhập lại nếu thiếu
-    setAdminToken(await api.sellerLogin(email, password).then((r) => r.token).catch(() => ''));
+    // Token cần cho mọi thao tác ghi (tour, người dùng, duyệt hồ sơ): không lấy được thì không cho vào trang Admin
+    const { token } = await api.sellerLogin(email, password);
+    setAdminToken(token);
     setAdminEmail(account.email);
   };
   const handleAdminLogout = () => {

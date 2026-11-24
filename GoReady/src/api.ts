@@ -4,13 +4,29 @@ import type { AccountUser, Article, ArticleInput, ArticleList, ArticleStatus, Ar
 // and on Vercel it resolves to the serverless functions under /api on the same origin.
 export const API_BASE = '/api';
 
+/** Token Admin (lấy lúc đăng nhập trang Admin). Có thì mọi yêu cầu đều kèm theo; chỉ các thao tác của Admin mới đòi nó. */
+const ADMIN_TOKEN_KEY = 'goready_admin_token';
+const storedAdminToken = (): string => {
+  try {
+    return (JSON.parse(window.localStorage.getItem(ADMIN_TOKEN_KEY) ?? '""') as string) || '';
+  } catch {
+    return '';
+  }
+};
+
+/** Phát ra khi một yêu cầu kèm token Admin bị từ chối 401 (token hết hạn): trang Admin lắng nghe để đăng xuất. */
+export const ADMIN_EXPIRED_EVENT = 'goready:admin-expired';
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   // Cho phép truyền thêm header (ví dụ x-user-id của admin) mà vẫn giữ Content-Type JSON
   const { headers: extraHeaders, ...rest } = options ?? {};
+  const adminToken = storedAdminToken();
   const res = await fetch(`${API_BASE}${path}`, {
     ...rest,
-    headers: { 'Content-Type': 'application/json', ...(extraHeaders as Record<string, string> | undefined) },
+    // Header truyền vào (vd. token của seller) luôn thắng token Admin mặc định
+    headers: { 'Content-Type': 'application/json', ...(adminToken ? { Authorization: `Bearer ${adminToken}` } : {}), ...(extraHeaders as Record<string, string> | undefined) },
   });
+  if (res.status === 401 && adminToken && !(extraHeaders as Record<string, string> | undefined)?.Authorization) window.dispatchEvent(new Event(ADMIN_EXPIRED_EVENT));
     if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const err = new Error(body.error || `Request failed: ${res.status}`);

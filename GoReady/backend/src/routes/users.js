@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getPool } from '../../../lib/db.js';
+import { requireUser } from '../../../lib/seller.js';
 import { listUsers, loginUser, registerUser, toggleUserStatus, updateUserAvatar, loginOrRegister } from '../../../lib/users.js';
 
 const router = Router();
@@ -63,7 +64,10 @@ router.patch('/:id/avatar', async (req, res) => {
   }
 });
 
-router.patch('/:id/status', async (req, res) => {
+// Khóa / mở tài khoản: chỉ Admin (token lấy lúc đăng nhập trang Admin)
+router.patch('/:id/status', (req, _res, next) => {
+  requireUser(pool, req.headers.authorization, 'admin').then(() => next(), next);
+}, async (req, res) => {
   const user = await toggleUserStatus(pool, req.params.id);
   if (!user) return res.status(404).json({ error: 'User not found' });
   res.json(user);

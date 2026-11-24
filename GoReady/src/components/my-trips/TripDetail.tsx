@@ -312,7 +312,11 @@ const TripDetail: React.FC<TripDetailProps> = ({ trip, phase, sellerNote, coverF
 
           {/* 4. Vé đã mua */}
           <Section id="ve" num={4} icon="🎟️" title="Vé đã mua" hint={`${trip.ve.length} vé điện tử`}>
-            {trip.ve.length === 0 ? (
+            {phase === 'pending' || phase === 'rejected' ? (
+              <p className="text-sm text-slate-500">
+                {phase === 'pending' ? 'Vé điện tử sẽ có sau khi nhà tổ chức xác nhận yêu cầu đặt tour của bạn.' : 'Yêu cầu đặt tour đã bị từ chối nên không có vé.'}
+              </p>
+            ) : trip.ve.length === 0 ? (
               <p className="text-sm text-slate-400">Chưa có vé nào cho chuyến đi này.</p>
             ) : (
               <>

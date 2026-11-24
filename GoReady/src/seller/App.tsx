@@ -10,6 +10,9 @@ import MyTours from './MyTours';
 import BookingManagement, { BOOKING_TABS, type Tab as BookingTab } from './BookingManagement';
 import Dashboard from './Dashboard';
 import TourForm from './TourForm';
+import DepartureSchedule from './DepartureSchedule';
+import Reviews from './Reviews';
+import BusinessProfile from './BusinessProfile';
 import ComingSoon from './ComingSoon';
 
 function App() {
@@ -104,6 +107,9 @@ function App() {
   } else if (route === '/booking') page = <BookingManagement key={query} token={token} onUnauthorized={logout} onChanged={refreshPending} initialTab={bookingTab} initialId={params.get('id') ?? ''} />;
   else if (route === '/tour-moi') page = <TourForm key="tour-form" token={token} onUnauthorized={logout} navigate={navigate} />;
   else if (/^\/tour\/[^/]+\/sua$/.test(route)) page = <TourForm key="tour-form" token={token} tourId={route.split('/')[2]} onUnauthorized={logout} navigate={navigate} />;
+  else if (route === '/lich-khoi-hanh') page = <DepartureSchedule token={token} onUnauthorized={logout} />;
+  else if (route === '/danh-gia') page = <Reviews token={token} onUnauthorized={logout} />;
+  else if (route === '/ho-so') page = <BusinessProfile token={token} seller={seller} onUnauthorized={logout} />;
   else if (label) page = <ComingSoon title={label} />;
   else page = <ComingSoon title="Không tìm thấy trang" note="Đường dẫn này không tồn tại trong Seller Center." />;
 

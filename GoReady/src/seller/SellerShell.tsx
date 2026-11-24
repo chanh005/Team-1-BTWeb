@@ -7,9 +7,9 @@ export const NAV_ITEMS: { path: string; label: string; soon?: boolean }[] = [
   { path: '/tour-cua-toi', label: 'Tour của tôi' },
   { path: '/tour-moi', label: 'Đăng tour mới' },
   { path: '/booking', label: 'Booking' },
-  { path: '/lich-khoi-hanh', label: 'Lịch khởi hành', soon: true },
-  { path: '/danh-gia', label: 'Đánh giá của khách', soon: true },
-  { path: '/ho-so', label: 'Hồ sơ doanh nghiệp', soon: true },
+  { path: '/lich-khoi-hanh', label: 'Lịch khởi hành' },
+  { path: '/danh-gia', label: 'Đánh giá của khách' },
+  { path: '/ho-so', label: 'Hồ sơ doanh nghiệp' },
 ];
 
 interface Props {

@@ -5,6 +5,8 @@ import { Tag, inputClass, outlineBtn, primaryBtn } from './ui';
 interface Props {
   token: string;
   onUnauthorized: () => void;
+  /** Tab trạng thái chọn sẵn (vd. từ thẻ "Tour chờ Admin duyệt" ở Tổng quan). */
+  initialStatus?: '' | SellerTourStatus;
 }
 
 const TABS: { value: '' | SellerTourStatus; label: string }[] = [
@@ -27,8 +29,8 @@ const STATUS_LABEL: Record<SellerTourStatus, { text: string; tone: 'default' | '
 const money = (n: number) => `${n.toLocaleString('vi-VN')} ₫`;
 const rowBtn = 'rounded-full border border-[#3D72BB] px-4 py-1.5 text-sm font-semibold text-[#3D72BB] hover:bg-primary-50 disabled:opacity-50';
 
-const MyTours: React.FC<Props> = ({ token, onUnauthorized }) => {
-  const [status, setStatus] = React.useState<'' | SellerTourStatus>('');
+const MyTours: React.FC<Props> = ({ token, onUnauthorized, initialStatus = '' }) => {
+  const [status, setStatus] = React.useState<'' | SellerTourStatus>(initialStatus);
   const [search, setSearch] = React.useState('');
   const [q, setQ] = React.useState('');
   const [data, setData] = React.useState<{ tours: SellerTourRow[]; counts: Record<SellerTourStatus, number> } | null>(null);

@@ -7,9 +7,13 @@ interface Props {
   onUnauthorized: () => void;
   /** Gọi sau mỗi hành động để cập nhật số trên menu "Booking". */
   onChanged: () => void;
+  /** Tab và booking chọn sẵn (từ Tổng quan). */
+  initialTab?: Tab;
+  initialId?: string;
 }
 
-type Tab = 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'closed';
+export type Tab = 'pending' | 'confirmed' | 'ongoing' | 'completed' | 'closed';
+export const BOOKING_TABS: Tab[] = ['pending', 'confirmed', 'ongoing', 'completed', 'closed'];
 const TABS: { value: Tab; label: string }[] = [
   { value: 'pending', label: 'Chờ xác nhận' },
   { value: 'confirmed', label: 'Đã xác nhận' },
@@ -58,10 +62,10 @@ const Row: React.FC<{ label: string; children: React.ReactNode; strong?: boolean
   </div>
 );
 
-const BookingManagement: React.FC<Props> = ({ token, onUnauthorized, onChanged }) => {
-  const [tab, setTab] = React.useState<Tab>('pending');
+const BookingManagement: React.FC<Props> = ({ token, onUnauthorized, onChanged, initialTab = 'pending', initialId = '' }) => {
+  const [tab, setTab] = React.useState<Tab>(initialTab);
   const [data, setData] = React.useState<{ bookings: SellerBooking[]; counts: SellerBookingCounts } | null>(null);
-  const [selectedId, setSelectedId] = React.useState('');
+  const [selectedId, setSelectedId] = React.useState(initialId);
   const [detail, setDetail] = React.useState<SellerBooking | null>(null);
   const [note, setNote] = React.useState('');
   const [noteError, setNoteError] = React.useState('');

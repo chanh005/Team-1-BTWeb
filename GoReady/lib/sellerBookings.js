@@ -8,10 +8,10 @@ import { SellerError } from './seller.js';
 
 const FILTERS = ['pending', 'confirmed', 'ongoing', 'completed', 'rejected', 'cancelled', 'closed'];
 
-const TODAY_SQL = `(NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date`;
+export const TODAY_SQL = `(NOW() AT TIME ZONE 'Asia/Ho_Chi_Minh')::date`;
 
 // Bảng tạm: mỗi booking của seller kèm trạng thái chuẩn hóa và ngày đi / ngày kết thúc
-const BASE_SQL = `
+export const BASE_SQL = `
   SELECT b.id, b."bookingCode", b."tourId", b.adults, b.children, b.infants, b."totalPrice", b."contactName", b."contactPhone",
          b."contactEmail", b.note, b."createdAt", b.seller_note, b.confirmed_at, b.completed_at, b.departure_id,
          t.name AS tour_name, t.duration,
@@ -23,14 +23,14 @@ const BASE_SQL = `
   LEFT JOIN tour_departures d ON d.id = b.departure_id
   WHERE t.seller_id = $1`;
 
-const withDates = (inner) => `
+export const withDates = (inner) => `
   SELECT x.*, to_char(x.start_date, 'YYYY-MM-DD') AS start_str,
          to_char(x.start_date + GREATEST(COALESCE(x.duration, 1) - 1, 0), 'YYYY-MM-DD') AS end_str,
          (x.status = 'confirmed' AND x.start_date <= ${TODAY_SQL} AND x.start_date + GREATEST(COALESCE(x.duration, 1) - 1, 0) >= ${TODAY_SQL}) AS ongoing,
          (x.status = 'confirmed' AND x.start_date + GREATEST(COALESCE(x.duration, 1) - 1, 0) < ${TODAY_SQL}) AS can_complete
   FROM (${inner}) x`;
 
-function shape(r) {
+export function shape(r) {
   const remaining = r.max_seats === null || r.max_seats === undefined ? null : r.max_seats - r.booked_seats;
   return {
     id: r.id, bookingCode: r.bookingCode, tourId: r.tourId, tour_name: r.tour_name, status: r.status, ongoing: r.ongoing,

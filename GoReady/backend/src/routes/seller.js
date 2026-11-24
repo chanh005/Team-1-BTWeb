@@ -8,6 +8,7 @@ import {
   requireApprovedSeller, listSellerTours, getTourFull, createSellerTour, saveSellerTour, submitSellerTour, setSellerTourVisibility,
   deleteSellerTour, listToursForAdmin, reviewTour,
 } from '../../../lib/sellerTours.js';
+import { getSellerDashboard } from '../../../lib/sellerDashboard.js';
 import { listSellerBookings, getSellerBooking, confirmSellerBooking, rejectSellerBooking, completeSellerBooking } from '../../../lib/sellerBookings.js';
 
 const pool = getPool();
@@ -103,6 +104,12 @@ router.delete('/tours/:id', wrap(async (req, res) => {
   const { seller } = await requireApprovedSeller(pool, req.headers.authorization);
   await deleteSellerTour(pool, seller, req.params.id);
   res.status(204).end();
+}));
+
+// ----- Tổng quan: các con số và danh sách cần xử lý, tính một lần -----
+router.get('/dashboard', wrap(async (req, res) => {
+  const { seller } = await requireApprovedSeller(pool, req.headers.authorization);
+  res.json(await getSellerDashboard(pool, seller.id));
 }));
 
 // ----- Booking của khách vào tour của người bán -----

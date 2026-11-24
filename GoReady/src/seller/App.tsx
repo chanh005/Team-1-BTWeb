@@ -1,5 +1,5 @@
 import React from 'react';
-import { api, type SellerProfile } from '../api';
+import { api, type SellerProfile, type SellerTourStatus } from '../api';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useHashRoute } from './useHashRoute';
 import SellerLogin from './SellerLogin';
@@ -7,7 +7,8 @@ import SellerProfileForm from './SellerProfileForm';
 import SellerStatus from './SellerStatus';
 import SellerShell, { NAV_ITEMS } from './SellerShell';
 import MyTours from './MyTours';
-import BookingManagement from './BookingManagement';
+import BookingManagement, { BOOKING_TABS, type Tab as BookingTab } from './BookingManagement';
+import Dashboard from './Dashboard';
 import ComingSoon from './ComingSoon';
 
 function App() {
@@ -80,23 +81,32 @@ function App() {
 
   // Đã được duyệt
   if (path === '/trang-thai') {
-    return <SellerStatus seller={seller} onRefresh={refresh} onLogout={logout} onEnter={() => navigate('/tour-cua-toi')} />;
+    return <SellerStatus seller={seller} onRefresh={refresh} onLogout={logout} onEnter={() => navigate('/tong-quan')} />;
   }
+  // Trang mặc định sau khi đăng nhập (đã duyệt) là Tổng quan
   if (path === '/' || path === '/dang-nhap' || path === '/dang-ky' || path === '/sua-ho-so') {
-    navigate('/tour-cua-toi', true);
+    navigate('/tong-quan', true);
     return null;
   }
 
-  const label = NAV_ITEMS.find((n) => n.path === path)?.label;
+  // Đường dẫn có thể kèm bộ lọc chọn sẵn: #/booking?status=pending&id=...
+  const [route, query = ''] = path.split('?');
+  const params = new URLSearchParams(query);
+
+  const label = NAV_ITEMS.find((n) => n.path === route)?.label;
+  const bookingTab = BOOKING_TABS.find((t) => t === params.get('status')) as BookingTab | undefined;
   let page: React.ReactNode;
-  if (path === '/tour-cua-toi') page = <MyTours token={token} onUnauthorized={logout} />;
-  else if (path === '/booking') page = <BookingManagement token={token} onUnauthorized={logout} onChanged={refreshPending} />;
-  else if (path === '/tour-moi') page = <ComingSoon title="Đăng tour mới" note="Form đăng tour (5 phần) đang được làm ở bước tiếp theo." />;
-  else if (path.startsWith('/tour/')) page = <ComingSoon title="Sửa tour" note="Form sửa tour dùng chung với form Đăng tour mới, đang được làm ở bước tiếp theo." />;
+  if (route === '/tong-quan') page = <Dashboard token={token} seller={seller} onUnauthorized={logout} onPendingCount={setPendingBookings} />;
+  else if (route === '/tour-cua-toi') {
+    const s = params.get('status') ?? '';
+    page = <MyTours key={query} token={token} onUnauthorized={logout} initialStatus={['draft', 'pending_review', 'active', 'rejected', 'hidden'].includes(s) ? (s as SellerTourStatus) : ''} />;
+  } else if (route === '/booking') page = <BookingManagement key={query} token={token} onUnauthorized={logout} onChanged={refreshPending} initialTab={bookingTab} initialId={params.get('id') ?? ''} />;
+  else if (route === '/tour-moi') page = <ComingSoon title="Đăng tour mới" note="Form đăng tour (5 phần) đang được làm ở bước tiếp theo." />;
+  else if (route.startsWith('/tour/')) page = <ComingSoon title="Sửa tour" note="Form sửa tour dùng chung với form Đăng tour mới, đang được làm ở bước tiếp theo." />;
   else if (label) page = <ComingSoon title={label} />;
   else page = <ComingSoon title="Không tìm thấy trang" note="Đường dẫn này không tồn tại trong Seller Center." />;
 
-  return <SellerShell path={path} seller={seller} pendingBookings={pendingBookings} onLogout={logout}>{page}</SellerShell>;
+  return <SellerShell path={route} seller={seller} pendingBookings={pendingBookings} onLogout={logout}>{page}</SellerShell>;
 }
 
 export default App;

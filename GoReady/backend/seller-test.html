@@ -74,6 +74,10 @@
 <button onclick="bkBuyerView()">27. Phía khách: xem booking này (phải thấy status + seller_note)</button>
 <button onclick="bkOtherSeller()" class="gray">28. Người bán khác xem booking này (phải 404)</button>
 
+<h2>Tổng quan (Dashboard)</h2>
+<button onclick="dash()">29. Xem dữ liệu tổng quan</button>
+<button onclick="dashCheck()" class="gray">29b. Đối chiếu với danh sách thật (tự so sánh)</button>
+
 <h2>Kết quả</h2>
 <pre id="out">Chưa có gì.</pre>
 
@@ -242,6 +246,17 @@ async function bkOtherSeller() {
   if (!adminToken) await adminLogin();
   await fetch(API + '/admin/sellers/' + reg.seller.id + '/approve', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + adminToken }, body: '{}' });
   await call('GET', '/bookings/' + bookingId, undefined, reg.token);
+}
+async function dash() { await call('GET', '/dashboard', undefined, sellerToken); }
+async function dashCheck() {
+  const [d, b, t] = await Promise.all(['/dashboard', '/bookings', '/tours'].map((p) => fetch(API + p, { headers: { Authorization: 'Bearer ' + sellerToken } }).then((r) => r.json())));
+  const rows = [
+    ['Booking chờ xác nhận', d.counts.pending_bookings, b.counts.pending],
+    ['Tour đang bán', d.counts.active_tours, t.counts.active],
+    ['Tour chờ duyệt', d.counts.pending_review_tours, t.counts.pending_review],
+    ['Booking đã xác nhận, đi trong 7 ngày tới (theo tab Đã xác nhận + Đang diễn ra)', d.counts.departing_soon_bookings, '(tự đếm tay: xem ngày đi)'],
+  ].map(([ten, dashboard, danhSach]) => ({ ten, dashboard, danhSach, khop: typeof danhSach === 'number' ? dashboard === danhSach : '—' }));
+  show(200, { doiChieu: rows, ghiChu: 'Cột khop phải là true. Dòng cuối không có danh sách để so, hãy đếm bằng tay.' });
 }
 </script>
 </body>

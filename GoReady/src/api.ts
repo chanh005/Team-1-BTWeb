@@ -100,6 +100,13 @@ export interface SellerBooking {
   can_complete: boolean;
 }
 
+/** Dữ liệu trang Tổng quan, tính một lần ở server. */
+export interface SellerDashboard {
+  counts: { pending_bookings: number; active_tours: number; pending_review_tours: number; departing_soon_bookings: number };
+  pending_bookings: { id: string; bookingCode: string; tour_name: string; start_date: string | null; adults: number; children: number; infants: number; status: string }[];
+  attention: { type: 'low_seats' | 'rejected' | 'no_departure'; tour_id: string; tour_name: string; status: string; remaining_seats?: number; departure_date?: string; reject_reason?: string | null }[];
+}
+
 export interface SellerBookingCounts {
   pending: number;
   confirmed: number;
@@ -162,6 +169,7 @@ export const api = {
   sellerTourAction: (token: string, id: string, action: 'hide' | 'show' | 'submit') =>
     request<unknown>(`/seller/tours/${id}/${action}`, { method: 'POST', headers: bearer(token), body: '{}' }),
   sellerDeleteTour: (token: string, id: string) => request<void>(`/seller/tours/${id}`, { method: 'DELETE', headers: bearer(token) }),
+  sellerDashboard: (token: string) => request<SellerDashboard>('/seller/dashboard', { headers: bearer(token) }),
   sellerListBookings: (token: string, status?: string) =>
     request<{ bookings: SellerBooking[]; counts: SellerBookingCounts }>(`/seller/bookings${status ? `?status=${status}` : ''}`, { headers: bearer(token) }),
   sellerGetBooking: (token: string, id: string) => request<SellerBooking>(`/seller/bookings/${id}`, { headers: bearer(token) }),

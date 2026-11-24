@@ -3,7 +3,7 @@ import type { SellerProfile } from '../api';
 import { Logo } from './ui';
 
 export const NAV_ITEMS: { path: string; label: string; soon?: boolean }[] = [
-  { path: '/tong-quan', label: 'Tổng quan', soon: true },
+  { path: '/tong-quan', label: 'Tổng quan' },
   { path: '/tour-cua-toi', label: 'Tour của tôi' },
   { path: '/tour-moi', label: 'Đăng tour mới', soon: true },
   { path: '/booking', label: 'Booking' },

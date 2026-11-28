@@ -18,6 +18,8 @@ interface NavbarProps {
   onOpenAi?: () => void;
   userName: string | null;
   userRole: 'user' | 'admin' | null;
+  /** false = ẩn lối vào Seller Center (khách đã đăng nhập). */
+  showSellerLinks: boolean;
   avatarUrl?: string | null;
   onOpenLogin: () => void;
   onLogout: () => void;
@@ -42,6 +44,7 @@ const Navbar: React.FC<NavbarProps> = ({
   onOpenSaved,
   userName,
   userRole,
+  showSellerLinks,
   avatarUrl,
   onOpenLogin,
   onLogout,
@@ -127,12 +130,14 @@ const Navbar: React.FC<NavbarProps> = ({
             )}
           </button>
           {/* Lối vào Seller Center: trang riêng cùng bản build, chuyển trang giống link "Vào trang Admin" (thẻ <a>) */}
-          <a
-            href="/seller/"
-            className="hidden sm:flex items-center gap-2 rounded-full border border-accent-dark/40 bg-accent/20 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-accent/40 transition-colors"
-          >
-            <span aria-hidden>🏪</span> Seller Center
-          </a>
+          {showSellerLinks && (
+            <a
+              href="/seller/"
+              className="hidden sm:flex items-center gap-2 rounded-full border border-accent-dark/40 bg-accent/20 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-accent/40 transition-colors"
+            >
+              <span aria-hidden>🏪</span> Seller Center
+            </a>
+          )}
 
           {userName ? (
             <div className="flex items-center gap-2 sm:gap-3">
@@ -280,9 +285,11 @@ const Navbar: React.FC<NavbarProps> = ({
             {link.mobileLabel}
           </button>
         ))}
-        <a href="/seller/" className="flex-1 rounded-full px-3 py-1.5 text-center leading-tight text-primary">
-          Seller Center
-        </a>
+        {showSellerLinks && (
+          <a href="/seller/" className="flex-1 rounded-full px-3 py-1.5 text-center leading-tight text-primary">
+            Seller Center
+          </a>
+        )}
       </nav>
     </header>
   );

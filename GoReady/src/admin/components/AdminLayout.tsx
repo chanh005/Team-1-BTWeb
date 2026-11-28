@@ -19,8 +19,6 @@ const NAV_ITEMS: { label: string; value: AdminPage; icon: string }[] = [
   { label: 'Người dùng', value: 'users', icon: '👤' },
 ];
 
-const USER_SITE_URL = '/';
-
 const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, onLogout, children }) => {
   const [mobileNavOpen, setMobileNavOpen] = React.useState(false);
 
@@ -58,11 +56,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, 
             </div>
           </div>
           <NavLinks />
-          <div className="mt-auto flex flex-col gap-2">
-            <a href={USER_SITE_URL} className="rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white">
-              ← Trang người dùng
-            </a>
-          </div>
         </aside>
 
         <div className="flex min-h-screen flex-1 flex-col">
@@ -106,9 +99,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ page, onNavigate, adminName, 
               </button>
             </div>
             <NavLinks onClick={() => setMobileNavOpen(false)} />
-            <a href={USER_SITE_URL} className="mt-auto rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-300 hover:bg-white/10 hover:text-white">
-              ← Trang người dùng
-            </a>
           </div>
         </div>
       )}

@@ -10,6 +10,7 @@ import ReviewCenter from './components/ReviewCenter';
 import { ADMIN_EXPIRED_EVENT, api } from '../api';
 import { addSheetToursIfMissing } from './importSheetTours';
 import { useLocalStorage } from '../hooks/useLocalStorage';
+import { clearUserSiteAdminLogin } from '../session';
 import { usePolledResource } from '../hooks/usePolledResource';
 import type { BookingStatus, Tour } from '../types';
 
@@ -51,6 +52,7 @@ function App() {
     if (!adminEmail || usersData === null) return; // not logged in, or account list hasn't loaded yet
     if (!adminUser || adminUser.role !== 'admin' || adminUser.status === 'locked') {
       setAdminEmail('');
+      clearUserSiteAdminLogin();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [adminUser, adminEmail, usersData]);
@@ -59,9 +61,10 @@ function App() {
   React.useEffect(() => {
     if (adminEmail && !adminToken) {
       setAdminEmail('');
+      clearUserSiteAdminLogin();
       return;
     }
-    const onExpired = () => { setAdminEmail(''); setAdminToken(''); };
+    const onExpired = () => { setAdminEmail(''); setAdminToken(''); clearUserSiteAdminLogin(); };
     window.addEventListener(ADMIN_EXPIRED_EVENT, onExpired);
     return () => window.removeEventListener(ADMIN_EXPIRED_EVENT, onExpired);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -80,6 +83,7 @@ function App() {
   const handleAdminLogout = () => {
     setAdminEmail('');
     setAdminToken('');
+    clearUserSiteAdminLogin();
   };
 
   if (!adminEmail) {

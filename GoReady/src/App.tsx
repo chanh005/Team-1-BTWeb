@@ -26,6 +26,7 @@ import { useTourRoute } from './hooks/useTourRoute';
 import { pushExplore, readExploreParams, replaceExploreParams, type ExploreParams } from './hooks/useExploreRoute';
 import { buildDepartures, formatDMY } from './data/departures';
 import { returnSeats } from './services/seatInventory';
+import { saveAdminSession } from './session';
 import { api } from './api';
 import type { AiPlannerResult, Booking, ChecklistCategory, ChecklistItem, DurationRange, SearchFilterState, Tour, UserReview } from './types';
 import { uid } from './utils/format';
@@ -128,6 +129,11 @@ function App() {
     () => (currentUserEmail ? accounts.find((u) => u.email.toLowerCase() === currentUserEmail.toLowerCase()) ?? null : null),
     [accounts, currentUserEmail]
   );
+
+  // Khách đã đăng nhập (role 'user') thì ẩn các lối vào Seller Center; chưa đăng nhập, Admin và người bán vẫn thấy.
+  // Ưu tiên role thật của tài khoản từ server (currentUserRole lưu 'user' cho mọi tài khoản không phải Admin, kể cả người bán);
+  // lúc danh sách tài khoản chưa tải xong thì dùng role đã lưu để nút không hiện lên rồi mới biến mất.
+  const showSellerLinks = !(currentUserEmail && (currentUser?.role ?? currentUserRole) === 'user');
 
   // If an admin locks the account currently browsing (picked up on the next poll), sign them out.
   React.useEffect(() => {
@@ -433,8 +439,16 @@ function App() {
   const handleLoginSubmit = async (email: string, password: string) => {
     try {
       const account = await api.login(email, password);
+      if (account.role === 'admin') {
+        // Admin không dùng trang người dùng: tạo phiên trang quản trị rồi chuyển thẳng sang /admin/.
+        // Lỗi lấy token được ném ra để hộp đăng nhập báo cho người dùng.
+        const { token } = await api.sellerLogin(email, password);
+        saveAdminSession(account.email, token);
+        window.location.replace('/admin/');
+        return;
+      }
       setCurrentUserEmail(account.email);
-      setCurrentUserRole(account.role === 'admin' ? 'admin' : 'user');
+      setCurrentUserRole('user');
       refreshAccounts();
       if (account.role === 'seller') {
         // Tài khoản người bán: lấy phiên Seller Center bằng chính email/mật khẩu vừa nhập rồi chuyển thẳng vào Seller Center
@@ -448,11 +462,7 @@ function App() {
           /* ở lại trang người mua */
         }
       }
-      if (account.role === 'admin') {
-        notify(`Đăng nhập Admin thành công! Chào mừng, ${account.name} 👑`);
-      } else {
-        notify(`Đăng nhập thành công! Chào mừng bạn, ${account.name}`);
-      }
+      notify(`Đăng nhập thành công! Chào mừng bạn, ${account.name}`);
       setShowLogin(false);
     } catch (err) {
       // Re-throw so LoginModal can handle and display the error
@@ -509,6 +519,7 @@ function App() {
         onOpenAi={() => setShowAi(true)}
         userName={currentUser?.name ?? null}
         userRole={(currentUserRole as 'user' | 'admin') || null}
+        showSellerLinks={showSellerLinks}
         avatarUrl={currentUser?.avatar ?? null}
         onOpenLogin={() => setShowLogin(true)}
         onLogout={() => {
@@ -801,7 +812,7 @@ function App() {
         />
       )}
 
-      <Footer />
+      <Footer showSellerLinks={showSellerLinks} />
 
       {activeTour && !detailPage && (
         <TourDetailModal
